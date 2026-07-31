@@ -1,3 +1,5 @@
+type TemplateInfo = { id: string; name: string; path: string };
+
 type Props = {
   workflowId: string;
   onWorkflowId: (id: string) => void;
@@ -5,7 +7,10 @@ type Props = {
   onValidate: () => void;
   onRun: () => void;
   onExport: () => void;
+  onExportSpec: () => void;
   onImport: (file: File) => void;
+  templates: TemplateInfo[];
+  onLoadTemplate: (path: string) => void;
   busy: boolean;
 };
 
@@ -16,7 +21,10 @@ export function Toolbar({
   onValidate,
   onRun,
   onExport,
+  onExportSpec,
   onImport,
+  templates,
+  onLoadTemplate,
   busy,
 }: Props) {
   return (
@@ -54,12 +62,39 @@ export function Toolbar({
       >
         Run
       </button>
+      <select
+        className="rounded border border-[var(--ig-border)] bg-[var(--ig-bg)] px-2 py-1 text-sm"
+        defaultValue=""
+        disabled={busy || templates.length === 0}
+        onChange={(e) => {
+          const path = e.target.value;
+          if (path) onLoadTemplate(path);
+          e.target.value = "";
+        }}
+        title="Load a local template"
+      >
+        <option value="">Templates…</option>
+        {templates.map((t) => (
+          <option key={t.id} value={t.path}>
+            {t.name}
+          </option>
+        ))}
+      </select>
       <button
         type="button"
         onClick={onExport}
         className="rounded border border-[var(--ig-border)] px-3 py-1 text-sm hover:bg-[var(--ig-bg)]"
+        title="Export InferGraph package {id,name,specification,ui}"
       >
         Export
+      </button>
+      <button
+        type="button"
+        onClick={onExportSpec}
+        className="rounded border border-[var(--ig-border)] px-3 py-1 text-sm hover:bg-[var(--ig-bg)]"
+        title="Export specification only"
+      >
+        Export spec
       </button>
       <label className="cursor-pointer rounded border border-[var(--ig-border)] px-3 py-1 text-sm hover:bg-[var(--ig-bg)]">
         Import

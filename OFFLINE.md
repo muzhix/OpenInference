@@ -1,8 +1,18 @@
-# InferGraph 无云离线推理（P0–P3）
+# InferGraph 无云离线推理（P0–P4）
 
 断网 + 无 Roboflow 账号时，用本地 cache 与 **InferGraph Registry** 跑推理，并用 **InferGraph Build** 编排 Workflow。底层开关仍是 `OFFLINE_MODE`；P1 允许访问 allowlist 内的自建 Registry，**永不**回落 `*.roboflow.com`。
 
 自定义 Workflow Block / 用户代码若自行联网，不在本约束内。硬 air-gap 需 OS 层隔离。
+
+## 30 分钟路径
+
+1. **装服务** — [`docs/infergraph/deploy.md`](docs/infergraph/deploy.md)：`source env.infergraph` 或 `docker compose -f docker/compose.infergraph-cloudless.yml up --build`
+2. **Pack / convert 模型** — [`docs/infergraph/pack.md`](docs/infergraph/pack.md)：`inferegistry pack` 或 `inferegistry convert`
+3. **Registry** — [`docs/infergraph/registry.md`](docs/infergraph/registry.md)：确认 `INFERGRAPH_REGISTRY_ALLOWLIST` 指向 Registry
+4. **Build 编排** — [`docs/infergraph/build.md`](docs/infergraph/build.md)：打开 `/build`，Templates → Detect and visualize，换成本地 `model_id`，Save
+5. **断网复跑** — 断开外网后再次打开已存 workflow → Run
+
+发行前：`python scripts/infergraph_release_scan.py`（见 [`docs/infergraph/licenses.md`](docs/infergraph/licenses.md)）。
 
 ## 品牌与环境变量别名（P2）
 
@@ -146,12 +156,16 @@ cd inferegistry && uv sync --extra dev && uv run pytest -q
 - `tests/inference/unit_tests/core/interfaces/http/test_infergraph_build_spa.py`
 - `tests/workflows/unit_tests/core_steps/test_infergraph_disabled_sinks.py`
 - `inference_models/tests/unit_tests/test_registry_allowlist.py`
+- `inferegistry/tests/test_convert.py`
 - `cd infergraph-build && npm run check`
+- `python scripts/infergraph_release_scan.py`
 
 ## 非目标
 
-- 像素级复刻商业 Roboflow Build UI；完整 kinds 表单 / Universe 市场（P4）
+- 像素级复刻商业 Roboflow Build UI；Universe 模板市场
 - 全局改代码默认 `API_BASE_URL` / 重命名 `roboflow_*.py` 模块
-- 删除云 sink 源码；mkdocs CDN 全量清理（P4）
+- 删除 deprecated `ROBOFLOW_*` 环境变量别名（major 版本）
+- 全量 SDK/CLI 默认 endpoint 改名；全站 mkdocs CDN / `site_name` 去品牌
+- 删除云 sink 源码
 - legacy `/ort` / `getWeights`
 - 使用或分发 `inference/enterprise/`

@@ -61,6 +61,10 @@ export function EditorPage() {
   const [status, setStatus] = useState("");
   const [runResult, setRunResult] = useState("");
   const [busy, setBusy] = useState(false);
+  const [templates, setTemplates] = useState<
+    { id: string; name: string; path: string }[]
+  >([]);
+
 
   const blocksByType = useMemo(() => {
     const map = new Map<string, BlockDescription>();
@@ -78,13 +82,17 @@ export function EditorPage() {
     (async () => {
       try {
         setStatus("Loading blocks…");
-        const [desc, modelRes] = await Promise.all([
+        const [desc, modelRes, templateIndex] = await Promise.all([
           describeBlocks(session),
           listModels(session).catch(() => ({ models: [] as CachedModel[] })),
+          fetch("/templates/index.json")
+            .then((r) => (r.ok ? r.json() : []))
+            .catch(() => []),
         ]);
         if (cancelled) return;
         setBlocks(desc.blocks || []);
         setModels(modelRes.models || []);
+        setTemplates(Array.isArray(templateIndex) ? templateIndex : []);
         setStatus(`Loaded ${(desc.blocks || []).length} blocks`);
       } catch (err) {
         if (!cancelled) setStatus(String(err));
@@ -228,46 +236,77 @@ export function EditorPage() {
     }
   };
 
-  const onExport = () => {
-    const doc = buildDoc();
-    const blob = new Blob([JSON.stringify(doc, null, 2)], {
+  const downloadJson = (filename: string, payload: unknown) => {
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {
       type: "application/json",
     });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${workflowId}.json`;
+    a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const onExport = () => {
+    downloadJson(`${workflowId}.json`, buildDoc());
+    setStatus("Exported InferGraph package (id + specification + ui)");
+  };
+
+  const onExportSpec = () => {
+    downloadJson(`${workflowId}.specification.json`, canvasToSpecification(nodes, edges));
+    setStatus("Exported specification only (version/inputs/steps/outputs)");
+  };
+
+  const applyImportedDoc = (
+    parsed: WorkflowDocument & WorkflowSpecification,
+    label: string,
+  ) => {
+    let spec: WorkflowSpecification | null = null;
+    let id = workflowId;
+    let kind = "specification";
+    if (parsed.specification?.steps) {
+      spec = parsed.specification;
+      if (parsed.id) id = String(parsed.id);
+      kind = "InferGraph package";
+      if (parsed.ui?.nodes) {
+        setNodes(parsed.ui.nodes as Node<StepNodeData>[]);
+        setEdges((parsed.ui.edges || []) as Edge[]);
+        setWorkflowId(id);
+        setStatus(`Imported ${label} (${kind} with ui)`);
+        return;
+      }
+    } else if (parsed.steps) {
+      spec = parsed as WorkflowSpecification;
+      kind = "bare specification";
+    }
+    if (!spec) throw new Error("Unrecognized workflow JSON");
+    const canvas = specificationToCanvas(spec, blocksByType);
+    setNodes(canvas.nodes);
+    setEdges(canvas.edges);
+    setWorkflowId(id);
+    setStatus(`Imported ${label} (${kind})`);
   };
 
   const onImport = async (file: File) => {
     try {
       const text = await file.text();
-      const parsed = JSON.parse(text) as WorkflowDocument & WorkflowSpecification;
-      let spec: WorkflowSpecification | null = null;
-      let id = workflowId;
-      if (parsed.specification?.steps) {
-        spec = parsed.specification;
-        if (parsed.id) id = parsed.id;
-        if (parsed.ui?.nodes) {
-          setNodes(parsed.ui.nodes as Node<StepNodeData>[]);
-          setEdges((parsed.ui.edges || []) as Edge[]);
-          setWorkflowId(id);
-          setStatus(`Imported ${file.name}`);
-          return;
-        }
-      } else if (parsed.steps) {
-        spec = parsed as WorkflowSpecification;
-      }
-      if (!spec) throw new Error("Unrecognized workflow JSON");
-      const canvas = specificationToCanvas(spec, blocksByType);
-      setNodes(canvas.nodes);
-      setEdges(canvas.edges);
-      setWorkflowId(id);
-      setStatus(`Imported ${file.name}`);
+      applyImportedDoc(JSON.parse(text), file.name);
     } catch (err) {
       setStatus(String(err));
+    }
+  };
+
+  const onLoadTemplate = async (path: string) => {
+    try {
+      setBusy(true);
+      const res = await fetch(path);
+      if (!res.ok) throw new Error(`Template not found: ${path}`);
+      applyImportedDoc(await res.json(), path);
+    } catch (err) {
+      setStatus(String(err));
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -280,7 +319,10 @@ export function EditorPage() {
         onValidate={onValidate}
         onRun={onRun}
         onExport={onExport}
+        onExportSpec={onExportSpec}
         onImport={onImport}
+        templates={templates}
+        onLoadTemplate={onLoadTemplate}
         busy={busy}
       />
       <div className="flex min-h-0 flex-1">

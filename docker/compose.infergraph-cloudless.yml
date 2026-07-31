@@ -1,9 +1,8 @@
-# InferGraph cloudless stack (P0 + P1 Registry).
+# InferGraph cloudless stack (P0–P4).
 #
 # Example:
-#   # Pack into shared cache first
 #   uv run --project inferegistry inferegistry pack ... --cache-dir ./infergraph-cache
-#   docker compose -f docker/compose.infergraph-cloudless.yml up
+#   docker compose -f docker/compose.infergraph-cloudless.yml up --build
 
 services:
   inferegistry:
@@ -34,7 +33,10 @@ services:
       retries: 10
 
   inference:
-    image: ${INFERGRAPH_IMAGE:-roboflow/roboflow-inference-server-cpu:latest}
+    build:
+      context: ..
+      dockerfile: docker/dockerfiles/Dockerfile.infergraph.cpu
+    image: ${INFERGRAPH_IMAGE:-infergraph/inference-cpu:local}
     env_file:
       - env.infergraph
     ports:

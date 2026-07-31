@@ -4,6 +4,9 @@ Offline-first visual Workflow editor (React + React Flow) for InferGraph.
 
 Embeds in the Inference `/build` iframe shell (`serverUrl` + `csrf` query params).
 
+Docs: [`docs/infergraph/build.md`](../docs/infergraph/build.md). Templates live in
+`public/templates/` and `examples/infergraph-workflows/`.
+
 ## Develop
 
 ```bash
@@ -21,10 +24,5 @@ npm run dev
 ```bash
 npm run build
 # Outputs dist/ — served by Inference at GET /workflows/local when ENABLE_BUILDER
-```
-
-## Check
-
-```bash
 npm run check
 ```

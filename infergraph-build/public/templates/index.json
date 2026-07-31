@@ -1,0 +1,12 @@
+[
+  {
+    "id": "detect_and_visualize",
+    "name": "Detect and visualize",
+    "path": "/templates/detect_and_visualize.json"
+  },
+  {
+    "id": "classify_image",
+    "name": "Classify image",
+    "path": "/templates/classify_image.json"
+  }
+]

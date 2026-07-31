@@ -1,0 +1,28 @@
+name: InferGraph release scan
+
+on:
+  push:
+    paths:
+      - "env.infergraph"
+      - "docker/env.infergraph"
+      - "docker/dockerfiles/Dockerfile.infergraph.cpu"
+      - "docker/compose.infergraph-cloudless.yml"
+      - "scripts/infergraph_release_scan.py"
+  pull_request:
+    paths:
+      - "env.infergraph"
+      - "docker/env.infergraph"
+      - "docker/dockerfiles/Dockerfile.infergraph.cpu"
+      - "docker/compose.infergraph-cloudless.yml"
+      - "scripts/infergraph_release_scan.py"
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run InferGraph release scan
+        run: python scripts/infergraph_release_scan.py

@@ -1,0 +1,41 @@
+{
+  "id": "detect_and_visualize",
+  "name": "Detect and visualize",
+  "specification": {
+    "version": "1.0",
+    "inputs": [
+      { "type": "WorkflowImage", "name": "image" },
+      {
+        "type": "WorkflowParameter",
+        "name": "model_id",
+        "default_value": "yolov8n-640"
+      }
+    ],
+    "steps": [
+      {
+        "type": "roboflow_core/roboflow_object_detection_model@v1",
+        "name": "detection",
+        "images": "$inputs.image",
+        "model_id": "$inputs.model_id"
+      },
+      {
+        "type": "roboflow_core/bounding_box_visualization@v1",
+        "name": "boxes",
+        "predictions": "$steps.detection.predictions",
+        "image": "$inputs.image"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "JsonField",
+        "name": "predictions",
+        "selector": "$steps.detection.predictions"
+      },
+      {
+        "type": "JsonField",
+        "name": "visualisation",
+        "selector": "$steps.boxes.image"
+      }
+    ]
+  }
+}

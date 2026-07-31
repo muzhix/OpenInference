@@ -4282,6 +4282,13 @@ class HttpInterface(BaseInterface):
                     StaticFiles(directory=str(_ig_build_assets)),
                     name="ig_build_assets",
                 )
+            _ig_build_templates = _ig_build_dist / "templates"
+            if _ig_build_templates.is_dir():
+                app.mount(
+                    "/templates",
+                    StaticFiles(directory=str(_ig_build_templates)),
+                    name="ig_build_templates",
+                )
 
             def _infergraph_build_index():
                 index_path = _ig_build_dist / "index.html"

@@ -32,6 +32,12 @@ extra_css:
   - styles.css
 
 nav:
+  - InferGraph:
+      - Deploy: infergraph/deploy.md
+      - Pack & convert: infergraph/pack.md
+      - Registry: infergraph/registry.md
+      - Build: infergraph/build.md
+      - Licenses: infergraph/licenses.md
   - Start:
       - Overview: start/overview.md
       - Understand:

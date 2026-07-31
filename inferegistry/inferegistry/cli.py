@@ -145,6 +145,58 @@ def import_workflow_command(
     click.echo(f"Imported workflow `{workflow_id}` -> {path}")
 
 
+@main.command("convert")
+@click.option(
+    "--source",
+    required=True,
+    type=click.Path(exists=True, path_type=str),
+    help="Traditional package dir or warm cache root containing model_type.json.",
+)
+@click.option(
+    "--model-id",
+    default=None,
+    help="Target model id (e.g. demo/1). Selects among packages when source is a root.",
+)
+@click.option(
+    "--cache-dir",
+    default=None,
+    type=click.Path(file_okay=False, path_type=str),
+    help="Destination InferGraph cache root.",
+)
+@click.option(
+    "--package-id",
+    default="default",
+    show_default=True,
+    help="models-cache package id.",
+)
+@click.option("--task", default=None, help="Override task from model_type.json.")
+@click.option(
+    "--architecture",
+    default=None,
+    help="Override architecture from model_type.json.",
+)
+def convert_command(
+    source: str,
+    model_id: str | None,
+    cache_dir: str | None,
+    package_id: str,
+    task: str | None,
+    architecture: str | None,
+) -> None:
+    """Convert a traditional cache package into InferGraph models-cache."""
+    from inferegistry.convert import convert_traditional_package
+
+    package_dir = convert_traditional_package(
+        source=source,
+        model_id=model_id,
+        cache_dir=cache_dir,
+        package_id=package_id,
+        task=task,
+        architecture=architecture,
+    )
+    click.echo(f"Converted -> {package_dir}")
+
+
 @main.command("register")
 @click.option(
     "--model-id",

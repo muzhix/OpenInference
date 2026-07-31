@@ -22,12 +22,18 @@ uv run inferegistry pack --model-id my-det/1 --weights ./weights.onnx \
   --task object-detection --architecture yolov8 \
   --class-names ./class_names.txt --cache-dir /path/to/cache
 
+# Convert traditional cache package → models-cache
+uv run inferegistry convert --source /path/to/warm --model-id demo/1 \
+  --cache-dir /path/to/cache
+
 uv run inferegistry register --model-id my-det/1 --cache-dir /path/to/cache
 
 uv run inferegistry serve --host 0.0.0.0 --port 8000 \
   --registry-root /path/to/cache \
   --public-base-url http://127.0.0.1:8000
 ```
+
+Docs: [`docs/infergraph/pack.md`](../docs/infergraph/pack.md), [`docs/infergraph/registry.md`](../docs/infergraph/registry.md).
 
 ## HTTP
 

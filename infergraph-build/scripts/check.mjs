@@ -1,8 +1,11 @@
 /**
- * Pure-function checks for InferGraph Build workflow serialization.
+ * Pure-function checks for InferGraph Build workflow serialization + templates.
  * Run: npm run check
  */
 import assert from "node:assert/strict";
+import { readFileSync, readdirSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 function canvasToSpecification(nodes, edges) {
   const steps = nodes.map((node) => {
@@ -78,4 +81,18 @@ assert.equal(spec.version, "1.0");
 assert.equal(spec.steps[0].images, "$inputs.image");
 assert.equal(spec.steps[1].predictions, "$steps.detection.predictions");
 assert.ok(spec.outputs.length >= 1);
+
+const here = dirname(fileURLToPath(import.meta.url));
+const templatesDir = join(here, "..", "public", "templates");
+const templateFiles = readdirSync(templatesDir).filter(
+  (name) => name.endsWith(".json") && name !== "index.json",
+);
+assert.ok(templateFiles.length >= 2, "expected at least two workflow templates");
+for (const name of templateFiles) {
+  const doc = JSON.parse(readFileSync(join(templatesDir, name), "utf8"));
+  const body = doc.specification || doc;
+  assert.equal(body.version, "1.0", name);
+  assert.ok(Array.isArray(body.steps) && body.steps.length >= 1, name);
+}
+
 console.log("infergraph-build check: ok");

@@ -1,0 +1,30 @@
+{
+  "id": "classify_image",
+  "name": "Classify image",
+  "specification": {
+    "version": "1.0",
+    "inputs": [
+      { "type": "WorkflowImage", "name": "image" },
+      {
+        "type": "WorkflowParameter",
+        "name": "model_id",
+        "default_value": "yolov8n-cls-640"
+      }
+    ],
+    "steps": [
+      {
+        "type": "roboflow_core/roboflow_classification_model@v1",
+        "name": "classifier",
+        "images": "$inputs.image",
+        "model_id": "$inputs.model_id"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "JsonField",
+        "name": "predictions",
+        "selector": "$steps.classifier.predictions"
+      }
+    ]
+  }
+}

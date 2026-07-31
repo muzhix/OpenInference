@@ -1,0 +1,79 @@
+# InferGraph CPU image — no enterprise, offline-friendly defaults.
+# Build from repo root:
+#   docker build -t infergraph/inference-cpu:local -f docker/dockerfiles/Dockerfile.infergraph.cpu .
+
+FROM python:3.11-bookworm AS base
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update -y && apt-get install -y --no-install-recommends \
+    libxext6 \
+    libopencv-dev \
+    ffmpeg \
+    git \
+    cmake \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements/_requirements.txt \
+    requirements/requirements.cpu.txt \
+    requirements/requirements.http.txt \
+    requirements/requirements.clip.txt \
+    requirements/requirements.doctr.txt \
+    requirements/requirements.groundingdino.txt \
+    requirements/requirements.yolo_world.txt \
+    requirements/requirements.transformers.txt \
+    requirements/requirements.easyocr.txt \
+    requirements/requirements.modal.txt \
+    ./
+
+RUN pip3 install --upgrade pip \
+    && pip3 install "wheel>=0.38.1,<=0.45.1" "setuptools~=83.0.0" \
+    && pip3 install \
+    -r _requirements.txt \
+    -r requirements.cpu.txt \
+    -r requirements.http.txt \
+    -r requirements.clip.txt \
+    -r requirements.doctr.txt \
+    -r requirements.groundingdino.txt \
+    -r requirements.yolo_world.txt \
+    -r requirements.transformers.txt \
+    -r requirements.easyocr.txt \
+    -r requirements.modal.txt \
+    uvicorn \
+    && rm -rf ~/.cache/pip
+
+WORKDIR /app
+
+# Core runtime (enterprise tree is removed after copy; never ADD enterprise modules)
+COPY inference inference
+RUN rm -rf /app/inference/enterprise
+
+COPY inference_sdk inference_sdk
+COPY inference_cli inference_cli
+COPY inference_models inference_models
+COPY setup.py setup.py
+COPY README.md README.md
+
+# Prebuilt InferGraph Build SPA
+COPY infergraph-build/dist infergraph-build/dist
+COPY inference/landing/out inference/landing/out
+
+COPY docker/config/cpu_http.py cpu_http.py
+COPY docker/entrypoint/run_uvicorn.sh /usr/local/bin/run_uvicorn.sh
+RUN chmod +x /usr/local/bin/run_uvicorn.sh
+
+RUN pip3 install -e . --no-deps && rm -rf ~/.cache/pip
+
+ENV VERSION_CHECK_MODE=continuous
+ENV PROJECT=infergraph
+ENV NUM_WORKERS=1
+ENV HOST=0.0.0.0
+ENV PORT=9001
+ENV WORKFLOWS_STEP_EXECUTION_MODE=local
+ENV ENABLE_BUILDER=True
+ENV BUILDER_ORIGIN=http://127.0.0.1:9001
+ENV OFFLINE_MODE=True
+ENV METRICS_ENABLED=False
+ENV DISABLE_VERSION_CHECK=True
+
+ENTRYPOINT ["/usr/local/bin/run_uvicorn.sh", "cpu_http:app"]

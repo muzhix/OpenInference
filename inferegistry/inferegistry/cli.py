@@ -1,0 +1,148 @@
+"""Click CLI for InferGraph pack / import tools."""
+
+from __future__ import annotations
+
+import json
+
+import click
+
+from inferegistry.import_cache import import_roboflow_cache
+from inferegistry.import_workflow import import_workflow
+from inferegistry.pack import pack_model
+
+
+@click.group()
+def main() -> None:
+    """InferGraph registry CLI — pack and import local model/workflow cache."""
+
+
+@main.command("pack")
+@click.option(
+    "--model-id",
+    required=True,
+    help="Model id used at inference time (e.g. my-det/1).",
+)
+@click.option(
+    "--weights",
+    required=True,
+    type=click.Path(exists=True, dir_okay=False, path_type=str),
+    help="Path to weights (.onnx / .pt / .engine).",
+)
+@click.option(
+    "--task",
+    required=True,
+    help="Task type (e.g. object-detection).",
+)
+@click.option(
+    "--architecture",
+    required=True,
+    help="Model architecture (e.g. yolov8).",
+)
+@click.option(
+    "--class-names",
+    required=True,
+    type=click.Path(exists=True, dir_okay=False, path_type=str),
+    help="Path to class_names.txt (one class per line).",
+)
+@click.option(
+    "--inference-config",
+    default=None,
+    type=click.Path(exists=True, dir_okay=False, path_type=str),
+    help="Optional inference_config.json path.",
+)
+@click.option(
+    "--cache-dir",
+    default=None,
+    type=click.Path(file_okay=False, path_type=str),
+    help="Model cache root (default: INFERENCE_HOME / MODEL_CACHE_DIR).",
+)
+@click.option(
+    "--package-id",
+    default="default",
+    show_default=True,
+    help="Alphanumeric package id under models-cache.",
+)
+@click.option(
+    "--backend",
+    default=None,
+    help="Backend override (onnx / torch / trt). Inferred from weights suffix when omitted.",
+)
+def pack_command(
+    model_id: str,
+    weights: str,
+    task: str,
+    architecture: str,
+    class_names: str,
+    inference_config: str | None,
+    cache_dir: str | None,
+    package_id: str,
+    backend: str | None,
+) -> None:
+    """Pack weights into an InferGraph models-cache package."""
+    package_dir = pack_model(
+        model_id=model_id,
+        weights=weights,
+        task=task,
+        architecture=architecture,
+        class_names=class_names,
+        inference_config=inference_config,
+        cache_dir=cache_dir,
+        package_id=package_id,
+        backend=backend,
+    )
+    click.echo(f"Packed model `{model_id}` -> {package_dir}")
+
+
+@main.command("import-roboflow-cache")
+@click.option(
+    "--source",
+    required=True,
+    type=click.Path(exists=True, file_okay=False, path_type=str),
+    help="Directory with traditional and/or models-cache packages.",
+)
+@click.option(
+    "--cache-dir",
+    default=None,
+    type=click.Path(file_okay=False, path_type=str),
+    help="Destination InferGraph cache root.",
+)
+def import_roboflow_cache_command(source: str, cache_dir: str | None) -> None:
+    """Import a Roboflow-compatible cache tree into the local cache."""
+    result = import_roboflow_cache(source=source, cache_dir=cache_dir)
+    click.echo(json.dumps(result, indent=2))
+
+
+@main.command("import-workflow")
+@click.option(
+    "--workflow-id",
+    required=True,
+    help="Local workflow id (letters, numbers, _ , -).",
+)
+@click.option(
+    "--source",
+    required=True,
+    type=click.Path(exists=True, dir_okay=False, path_type=str),
+    help="Path to workflow JSON.",
+)
+@click.option(
+    "--cache-dir",
+    default=None,
+    type=click.Path(file_okay=False, path_type=str),
+    help="Cache root containing workflow/local/.",
+)
+def import_workflow_command(
+    workflow_id: str,
+    source: str,
+    cache_dir: str | None,
+) -> None:
+    """Import a workflow JSON into local builder storage."""
+    path = import_workflow(
+        workflow_id=workflow_id,
+        source=source,
+        cache_dir=cache_dir,
+    )
+    click.echo(f"Imported workflow `{workflow_id}` -> {path}")
+
+
+if __name__ == "__main__":
+    main()

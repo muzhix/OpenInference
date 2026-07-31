@@ -507,6 +507,13 @@ def get_model_type(
         )
         return project_task_type, model_type
 
+    if OFFLINE_MODE:
+        raise ModelArtefactError(
+            f"Model `{model_id}` was not found in the local InferGraph cache. "
+            "Use `inferegistry pack` or `import-roboflow-cache` to add the model "
+            "before running with OFFLINE_MODE enabled."
+        )
+
     if USE_INFERENCE_MODELS:
         api_data = get_model_metadata_from_inference_models_registry(
             api_key=api_key,

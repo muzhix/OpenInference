@@ -1,0 +1,32 @@
+[project]
+name = "inferegistry"
+version = "0.1.0"
+description = "InferGraph model pack/import CLI (P0: local cache only; HTTP Registry in P1)."
+readme = "README.md"
+requires-python = ">=3.10,<3.13"
+dependencies = [
+  "click>=8.1.0",
+  "inference-models",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0.0",
+]
+
+[project.scripts]
+inferegistry = "inferegistry.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["inferegistry"]
+
+[tool.uv.sources]
+inference-models = { path = "../inference_models", editable = true }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

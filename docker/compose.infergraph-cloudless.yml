@@ -1,0 +1,19 @@
+# InferGraph cloudless stack (P0).
+# Requires a pre-built inference CPU image; mounts a local cache volume.
+#
+# Example:
+#   docker compose -f docker/compose.infergraph-cloudless.yml up
+#
+# Pack models into ./infergraph-cache first, e.g.:
+#   uv run --project inferegistry inferegistry pack ... --cache-dir ./infergraph-cache
+
+services:
+  inference:
+    image: ${INFERGRAPH_IMAGE:-roboflow/roboflow-inference-server-cpu:latest}
+    env_file:
+      - env.infergraph
+    ports:
+      - "${INFERGRAPH_PORT:-9001}:9001"
+    volumes:
+      - ${INFERGRAPH_CACHE_DIR:-../infergraph-cache}:/cache
+    restart: unless-stopped

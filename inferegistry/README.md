@@ -1,9 +1,11 @@
 # inferegistry
 
-InferGraph model Registry — local pack/import CLI and HTTP service compatible with
-Roboflow `external/stat` + `external/weights` clients.
+**InferGraph** model Registry — local pack/import CLI and HTTP service for the
+InferGraph offline runtime. Compatible with Roboflow `external/stat` +
+`external/weights` clients.
 
-See root [`OFFLINE.md`](../OFFLINE.md).
+See root [`OFFLINE.md`](../OFFLINE.md) for brand aliases (`INFERGRAPH_*`) and
+cloudless setup.
 
 ## Setup
 

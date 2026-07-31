@@ -27,7 +27,7 @@ DEFAULT_DEVICE_STR = os.getenv(
     ("cuda" if torch.cuda.is_available() else "cpu"),
 )
 DEFAULT_DEVICE = torch.device(DEFAULT_DEVICE_STR)
-ROBOFLOW_API_KEY = os.getenv("ROBOFLOW_API_KEY")
+ROBOFLOW_API_KEY = os.getenv("INFERGRAPH_API_KEY") or os.getenv("ROBOFLOW_API_KEY")
 API_CALLS_TIMEOUT = get_integer_from_env(variable_name="API_CALLS_TIMEOUT", default=5)
 API_CALLS_MAX_TRIES = get_integer_from_env(
     variable_name="API_CALLS_MAX_TRIES", default=3
@@ -39,13 +39,14 @@ IDEMPOTENT_API_REQUEST_CODES_TO_RETRY = set(
     )
 )
 ROBOFLOW_ENVIRONMENT = os.getenv("ROBOFLOW_ENVIRONMENT", "prod")
-ROBOFLOW_API_HOST = os.getenv(
-    "ROBOFLOW_API_HOST",
-    (
+ROBOFLOW_API_HOST = (
+    os.getenv("INFERGRAPH_API_HOST")
+    or os.getenv("ROBOFLOW_API_HOST")
+    or (
         "https://api.roboflow.com"
         if ROBOFLOW_ENVIRONMENT.lower() == "prod"
         else "https://api.roboflow.one"
-    ),
+    )
 )
 _legacy_license_server = os.getenv("LICENSE_SERVER")
 SECURE_GATEWAY = os.getenv("SECURE_GATEWAY") or _legacy_license_server or None

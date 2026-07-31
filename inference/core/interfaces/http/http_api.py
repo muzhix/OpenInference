@@ -596,17 +596,17 @@ class HttpInterface(BaseInterface):
                 "mapped to workspaces without API connectivity."
             )
 
-        description = "Roboflow inference server"
+        description = "InferGraph inference server"
 
         app = FastAPI(
-            title="Roboflow Inference Server",
+            title="InferGraph Inference Server",
             description=description,
             version=__version__,
-            terms_of_service="https://roboflow.com/terms",
+            terms_of_service="https://www.apache.org/licenses/LICENSE-2.0.html",
             contact={
-                "name": "Roboflow Inc.",
-                "url": "https://roboflow.com/contact",
-                "email": "help@roboflow.com",
+                "name": "InferGraph",
+                "url": "https://github.com/muzhix/inference",
+                "email": "",
             },
             license_info={
                 "name": "Apache 2.0",
@@ -1705,7 +1705,7 @@ class HttpInterface(BaseInterface):
                 ServerVersionInfo: The server version information.
             """
             return ServerVersionInfo(
-                name="Roboflow Inference Server",
+                name="InferGraph Inference Server",
                 version=__version__,
                 uuid=GLOBAL_INFERENCE_SERVER_ID,
             )

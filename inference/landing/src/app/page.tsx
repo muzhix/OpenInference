@@ -26,16 +26,8 @@ export default function Home() {
       >
         <div className="flex flex-col items-center gap-6 px-8 text-center ">
           <div className="flex flex-col gap-1 items-center relative z-10">
-            <a href="https://roboflow.com" target="_blank">
-              <Image
-                src="/static/roboflow_full_logo_color.svg"
-                alt="Roboflow Logo"
-                width={200}
-                height={100}
-              />
-            </a>
             <div className="font-bold text-gray-900 text-5xl md:text-6xl">
-              Inference
+              InferGraph
             </div>
             <div
               className={classNames(
@@ -43,7 +35,7 @@ export default function Home() {
                 "font-bold text-purple-500"
               )}
             >
-              developer-friendly vision inference
+              offline-first vision inference
             </div>
             <Image
               src="/static/cone.svg"
@@ -76,32 +68,33 @@ export default function Home() {
           </div>
 
           <div className="text-base md:text-lg font-medium max-w-xl">
-            Roboflow Inference is an{" "}
+            InferGraph is an{" "}
             <span className="font-extrabold">
               easy-to-use, production-ready
             </span>{" "}
-            inference server for computer vision that supports the deployment of
-            many popular model architectures and fine-tuned models.
+            inference server for computer vision. Run models offline with a
+            self-hosted Registry — Roboflow-compatible HTTP API.
           </div>
           <div className="flex items-center justify-center gap-2 md:gap-4 flex-col sm:flex-row flex-nowrap sm:flex-wrap px-6">
             <HeaderLink
-              href="/build"
+              href="/docs"
               className=""
-              label="Start building locally"
-              icon="💻"
+              label="API docs"
+              icon="📚"
               target="_top"
             />
             <HeaderLink
-              href="https://universe.roboflow.com"
+              href="/info"
               className=""
-              label="Find interesting models"
-              icon="🔍"
+              label="Server info"
+              icon="ℹ️"
+              target="_top"
             />
             <HeaderLink
-              href="https://roboflow.com/train"
+              href="https://github.com/muzhix/inference/blob/main/OFFLINE.md"
               className=""
-              label="Train your own custom models"
-              icon="💫"
+              label="Offline setup guide"
+              icon="📦"
             />
           </div>
           {/* Dedicated row for Dashboard link with fixed height to avoid layout shift */}
@@ -177,17 +170,16 @@ export default function Home() {
           </div>
         </div>
         <div className="flex items-center justify-center gap-2 flex-col sm:flex-row">
-          {/* TODO: Replace placeholder emoji & → with actual FontAwesome icons from mocks */}
           <HeaderLink
-            href="https://inference.roboflow.com"
+            href="https://github.com/muzhix/inference/blob/main/OFFLINE.md"
             className="bg-purple-600"
-            label="Read the Documentation"
+            label="Offline setup guide"
             icon="📄"
           />
           <HeaderLink
-            href="https://github.com/roboflow/inference"
+            href="https://github.com/muzhix/inference"
             className="bg-gray-900"
-            label="Star the Github Repository"
+            label="GitHub Repository"
             icon="⭐"
           />
         </div>

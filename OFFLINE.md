@@ -1,6 +1,6 @@
-# InferGraph 无云离线推理（P0 + P1 + P2）
+# InferGraph 无云离线推理（P0–P3）
 
-断网 + 无 Roboflow 账号时，用本地 cache 与 **InferGraph Registry** 跑推理。底层开关仍是 `OFFLINE_MODE`；P1 允许访问 allowlist 内的自建 Registry，**永不**回落 `*.roboflow.com`。
+断网 + 无 Roboflow 账号时，用本地 cache 与 **InferGraph Registry** 跑推理，并用 **InferGraph Build** 编排 Workflow。底层开关仍是 `OFFLINE_MODE`；P1 允许访问 allowlist 内的自建 Registry，**永不**回落 `*.roboflow.com`。
 
 自定义 Workflow Block / 用户代码若自行联网，不在本约束内。硬 air-gap 需 OS 层隔离。
 
@@ -104,6 +104,32 @@ curl -s http://127.0.0.1:9001/infer/object_detection \
 
 Cache miss 时会查询 allowlist 内的 Registry；仍不会请求 Roboflow 云。
 
+### 5. InferGraph Build（可视化编排）
+
+Profile 已设 `ENABLE_BUILDER=True`，`BUILDER_ORIGIN` 指向本机 Inference（同源 SPA，不加载 `app.roboflow.com`）。
+
+1. 先构建前端（仓库已提交 `infergraph-build/dist/`；改源码后需重建）：
+
+```bash
+cd infergraph-build && npm install && npm run build && npm run check
+```
+
+2. 用 `env.infergraph` 启动 Inference 后打开：
+
+```text
+http://127.0.0.1:9001/build
+```
+
+iframe 会加载同源 `/workflows/local?serverUrl=…&csrf=…`。
+
+3. 从左侧调色板添加 **model** + **visualization** block，连线（`$inputs.image` / `$steps…`），选本地 cache 模型，Save → Validate → Run。
+
+4. 断网后再次打开已保存 workflow，可重复 Run。
+
+**导入边界：** Import 支持 InferGraph Build 导出的 `{ id, specification, ui }`，以及仅含 `version/inputs/steps/outputs` 的 Roboflow-compatible specification JSON。复杂 kind / 动态 outputs / Universe 模板不在本阶段范围。
+
+开发时也可把 `BUILDER_ORIGIN=http://127.0.0.1:5173` 并 `npm run dev`。
+
 ## 自检
 
 ```bash
@@ -117,12 +143,14 @@ cd inferegistry && uv sync --extra dev && uv run pytest -q
 - `inferegistry/tests/test_e2e_registry_client_shape.py`
 - `tests/inference/unit_tests/core/test_infergraph_cloudless_guards.py`
 - `tests/inference/unit_tests/core/test_infergraph_env_aliases.py`
+- `tests/inference/unit_tests/core/interfaces/http/test_infergraph_build_spa.py`
 - `tests/workflows/unit_tests/core_steps/test_infergraph_disabled_sinks.py`
 - `inference_models/tests/unit_tests/test_registry_allowlist.py`
+- `cd infergraph-build && npm run check`
 
 ## 非目标
 
-- InferGraph Build 前端（P3）
+- 像素级复刻商业 Roboflow Build UI；完整 kinds 表单 / Universe 市场（P4）
 - 全局改代码默认 `API_BASE_URL` / 重命名 `roboflow_*.py` 模块
 - 删除云 sink 源码；mkdocs CDN 全量清理（P4）
 - legacy `/ort` / `getWeights`

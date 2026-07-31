@@ -4246,6 +4246,9 @@ class HttpInterface(BaseInterface):
                         return RedirectResponse(f"/notebook-instructions.html")
 
         if ENABLE_BUILDER:
+            from pathlib import Path as _Path
+
+            from fastapi.responses import FileResponse
             from inference.core.interfaces.http.builder.routes import (
                 router as builder_router,
             )
@@ -4264,6 +4267,40 @@ class HttpInterface(BaseInterface):
 
             # Attach all routes from builder to the /build prefix
             app.include_router(builder_router, prefix="/build", tags=["builder"])
+
+            # InferGraph Build SPA (same-origin under BUILDER_ORIGIN=/workflows/local)
+            # Resolve like landing static mounts: prefer CWD, then repo-relative from this file.
+            _ig_candidates = [
+                _Path("infergraph-build") / "dist",
+                _Path(__file__).resolve().parents[4] / "infergraph-build" / "dist",
+            ]
+            _ig_build_dist = next((p for p in _ig_candidates if p.is_dir()), _ig_candidates[0])
+            _ig_build_assets = _ig_build_dist / "assets"
+            if _ig_build_assets.is_dir():
+                app.mount(
+                    "/assets",
+                    StaticFiles(directory=str(_ig_build_assets)),
+                    name="ig_build_assets",
+                )
+
+            def _infergraph_build_index():
+                index_path = _ig_build_dist / "index.html"
+                if not index_path.is_file():
+                    return JSONResponse(
+                        {
+                            "error": "InferGraph Build dist missing. Run: cd infergraph-build && npm run build"
+                        },
+                        status_code=503,
+                    )
+                return FileResponse(index_path, media_type="text/html")
+
+            @app.get("/workflows/local", include_in_schema=False)
+            async def infergraph_build_spa_root():
+                return _infergraph_build_index()
+
+            @app.get("/workflows/local/{workflow_id}", include_in_schema=False)
+            async def infergraph_build_spa_edit(workflow_id: str):
+                return _infergraph_build_index()
 
         if LEGACY_ROUTE_ENABLED:
             # Legacy object detection inference path for backwards compatibility

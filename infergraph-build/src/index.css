@@ -1,0 +1,37 @@
+@import "tailwindcss";
+
+:root {
+  --ig-bg: #0f1419;
+  --ig-panel: #1a222c;
+  --ig-border: #2a3542;
+  --ig-text: #e8eef4;
+  --ig-muted: #8b9aab;
+  --ig-accent: #3d9cf0;
+  --ig-danger: #e35d6a;
+  --ig-ok: #3cb87a;
+  font-family: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  color: var(--ig-text);
+  background: var(--ig-bg);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.react-flow__node {
+  font-size: 12px;
+}

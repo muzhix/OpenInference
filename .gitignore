@@ -19,6 +19,9 @@ __pycache__/
 build/
 develop-eggs/
 dist/
+# InferGraph Build ships a prebuilt SPA (ENABLE_BUILDER serves it).
+!infergraph-build/dist/
+!infergraph-build/dist/**
 downloads/
 eggs/
 .eggs/

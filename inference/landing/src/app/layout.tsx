@@ -5,8 +5,8 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   icons:  "/static/icon.png",
-  title: "Roboflow Inference Server",
-  description: "With no prior knowledge of machine learning or device-specific deployment, you can deploy a computer vision model to a range of devices and environments using the Roboflow Inference Server.",
+  title: "InferGraph Inference Server",
+  description: "Offline-first computer vision inference server. Deploy models locally with a self-hosted Registry — Roboflow-compatible HTTP API.",
   robots: "noindex"
 };
 

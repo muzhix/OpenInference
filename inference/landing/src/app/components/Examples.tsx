@@ -22,8 +22,8 @@ const dockerCode = `import requests
 dataset_id = "soccer-players-5fuqs"
 version_id = "1"
 image_url = "https://source.roboflow.com/pwYAXv9BTpqLyFfgQoPZ/u48G0UpWfk8giSw7wrU8/original.jpg"
-# Replace ROBOFLOW_API_KEY with your Roboflow API Key
-api_key = "ROBOFLOW_API_KEY"
+# Prefer INFERGRAPH_API_KEY (ROBOFLOW_API_KEY still works)
+api_key = "INFERGRAPH_API_KEY"
 confidence = 0.5
 
 url = f"http://localhost:9001/{dataset_id}/{version_id}"
@@ -42,8 +42,8 @@ const pipCode = `from inference.models.utils import get_model
 
 model = get_model(
     model_id="soccer-players-5fuqs/1",
-    # Replace ROBOFLOW_API_KEY with your Roboflow API Key
-    api_key="ROBOFLOW_API_KEY"
+    # Prefer INFERGRAPH_API_KEY (ROBOFLOW_API_KEY still works)
+    api_key="INFERGRAPH_API_KEY"
 )
 
 results = model.infer(
@@ -58,8 +58,8 @@ print(results)
 const clipCode = `from inference.models import Clip
 
 model = Clip(
-    # Replace ROBOFLOW_API_KEY with your Roboflow API Key
-    api_key = "ROBOFLOW_API_KEY"
+    # Prefer INFERGRAPH_API_KEY (ROBOFLOW_API_KEY still works)
+    api_key = "INFERGRAPH_API_KEY"
 )
 
 image_url = "https://source.roboflow.com/7fLqS2r1SV8mm0YzyI0c/yy6hjtPUFFkq4yAvhkvs/original.jpg"
@@ -72,8 +72,8 @@ print(embeddings)
 const samCode = `from inference.models import SegmentAnything
 
 model = SegmentAnything(
-    # Replace ROBOFLOW_API_KEY with your Roboflow API Key
-    api_key = "ROBOFLOW_API_KEY"
+    # Prefer INFERGRAPH_API_KEY (ROBOFLOW_API_KEY still works)
+    api_key = "INFERGRAPH_API_KEY"
 )
 
 image_url = "https://source.roboflow.com/7fLqS2r1SV8mm0YzyI0c/yy6hjtPUFFkq4yAvhkvs/original.jpg"

@@ -17,6 +17,23 @@ from inference.core.warnings import (
     ModelDependencyMissing,
 )
 
+
+def getenv_aliased(*names: str, default: Optional[str] = None) -> Optional[str]:
+    """Return the first non-empty environment variable among ``names``.
+
+    Args:
+        *names: Candidate environment variable names in priority order.
+        default: Value returned when none of the names are set.
+
+    Returns:
+        The first non-empty env value, or ``default``.
+    """
+    for name in names:
+        value = os.getenv(name)
+        if value is not None and value != "":
+            return value
+    return default
+
 load_dotenv(os.getcwd() + "/.env")
 
 # Install warning filters before any module-level ``warnings.warn`` calls below,
@@ -111,14 +128,17 @@ METRICS_COLLECTOR_BASE_URL = os.getenv(
 )
 
 # extra headers expected to be serialised json
-ROBOFLOW_API_EXTRA_HEADERS = os.getenv("ROBOFLOW_API_EXTRA_HEADERS")
+ROBOFLOW_API_EXTRA_HEADERS = getenv_aliased(
+    "INFERGRAPH_API_EXTRA_HEADERS",
+    "ROBOFLOW_API_EXTRA_HEADERS",
+)
 
 # Debug flag for the API, default is False
 API_DEBUG = os.getenv("API_DEBUG", False)
 
 # API key, default is None
-API_KEY_ENV_NAMES = ["ROBOFLOW_API_KEY", "API_KEY"]
-API_KEY = os.getenv(API_KEY_ENV_NAMES[0], None) or os.getenv(API_KEY_ENV_NAMES[1], None)
+API_KEY_ENV_NAMES = ["INFERGRAPH_API_KEY", "ROBOFLOW_API_KEY", "API_KEY"]
+API_KEY = getenv_aliased(*API_KEY_ENV_NAMES)
 
 # AWS access key ID, default is None
 AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID", None)
@@ -732,10 +752,17 @@ REDIS_TIMEOUT = float(os.getenv("REDIS_TIMEOUT", 2.0))
 REQUIRED_ONNX_PROVIDERS = safe_split_value(os.getenv("REQUIRED_ONNX_PROVIDERS", None))
 
 # Roboflow server UUID
-ROBOFLOW_SERVER_UUID = os.getenv("ROBOFLOW_SERVER_UUID", str(uuid.uuid4()))
+ROBOFLOW_SERVER_UUID = getenv_aliased(
+    "INFERGRAPH_SERVER_UUID",
+    "ROBOFLOW_SERVER_UUID",
+    default=str(uuid.uuid4()),
+)
 
 # Roboflow service secret, default is None
-ROBOFLOW_SERVICE_SECRET = os.getenv("ROBOFLOW_SERVICE_SECRET", None)
+ROBOFLOW_SERVICE_SECRET = getenv_aliased(
+    "INFERGRAPH_SERVICE_SECRET",
+    "ROBOFLOW_SERVICE_SECRET",
+)
 
 # Maximum embedding cache size for SAM, default is 10
 SAM_MAX_EMBEDDING_CACHE_SIZE = int(os.getenv("SAM_MAX_EMBEDDING_CACHE_SIZE", 10))
@@ -1073,11 +1100,19 @@ WORKFLOW_BLOCKS_WRITE_DIRECTORY = os.getenv("WORKFLOW_BLOCKS_WRITE_DIRECTORY")
 
 DEDICATED_DEPLOYMENT_ID = os.getenv("DEDICATED_DEPLOYMENT_ID")
 
-ROBOFLOW_INTERNAL_SERVICE_SECRET = os.getenv("ROBOFLOW_INTERNAL_SERVICE_SECRET")
-ROBOFLOW_INTERNAL_SERVICE_NAME = os.getenv("ROBOFLOW_INTERNAL_SERVICE_NAME")
-ROBOFLOW_ASSUME_IDENTITY_SERVICE_ACCESS_TOKEN = os.getenv(
-    "ROBOFLOW_ASSUME_IDENTITY_SERVICE_ACCESS_TOKEN"
-) or os.getenv("ASSUME_IDENTITY_SERVICE_ACCESS_TOKEN")
+ROBOFLOW_INTERNAL_SERVICE_SECRET = getenv_aliased(
+    "INFERGRAPH_INTERNAL_SERVICE_SECRET",
+    "ROBOFLOW_INTERNAL_SERVICE_SECRET",
+)
+ROBOFLOW_INTERNAL_SERVICE_NAME = getenv_aliased(
+    "INFERGRAPH_INTERNAL_SERVICE_NAME",
+    "ROBOFLOW_INTERNAL_SERVICE_NAME",
+)
+ROBOFLOW_ASSUME_IDENTITY_SERVICE_ACCESS_TOKEN = getenv_aliased(
+    "INFERGRAPH_ASSUME_IDENTITY_SERVICE_ACCESS_TOKEN",
+    "ROBOFLOW_ASSUME_IDENTITY_SERVICE_ACCESS_TOKEN",
+    "ASSUME_IDENTITY_SERVICE_ACCESS_TOKEN",
+)
 
 # Preload Models
 PRELOAD_MODELS = (
@@ -1112,14 +1147,24 @@ TRANSIENT_ROBOFLOW_API_ERRORS_RETRIES = int(
 TRANSIENT_ROBOFLOW_API_ERRORS_RETRY_INTERVAL = int(
     os.getenv("TRANSIENT_ROBOFLOW_API_ERRORS_RETRY_INTERVAL", "1")
 )
-ROBOFLOW_API_REQUEST_TIMEOUT = os.getenv("ROBOFLOW_API_REQUEST_TIMEOUT", "120")
+ROBOFLOW_API_REQUEST_TIMEOUT = getenv_aliased(
+    "INFERGRAPH_API_REQUEST_TIMEOUT",
+    "ROBOFLOW_API_REQUEST_TIMEOUT",
+    default="120",
+)
 if ROBOFLOW_API_REQUEST_TIMEOUT:
     ROBOFLOW_API_REQUEST_TIMEOUT = int(ROBOFLOW_API_REQUEST_TIMEOUT)
 
 
 # Control SSL certificate verification for requests to the Roboflow API
-# Default is True (verify SSL). Set ROBOFLOW_API_VERIFY_SSL=false to disable in local dev.
-ROBOFLOW_API_VERIFY_SSL = str2bool(os.getenv("ROBOFLOW_API_VERIFY_SSL", "True"))
+# Default is True (verify SSL). Set INFERGRAPH_API_VERIFY_SSL / ROBOFLOW_API_VERIFY_SSL=false to disable.
+ROBOFLOW_API_VERIFY_SSL = str2bool(
+    getenv_aliased(
+        "INFERGRAPH_API_VERIFY_SSL",
+        "ROBOFLOW_API_VERIFY_SSL",
+        default="True",
+    )
+)
 
 DISK_CACHE_CLEANUP = str2bool(os.getenv("DISK_CACHE_CLEANUP", "True"))
 MEMORY_FREE_THRESHOLD = float(

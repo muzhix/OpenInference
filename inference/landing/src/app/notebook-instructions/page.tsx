@@ -1,10 +1,7 @@
 "use client";
 
-import Image from "next/image";
-import HeaderLink from "@/app/components/headerLink";
 import React from "react";
 import { roboto_mono } from "@/app/fonts";
-import ExampleLink from "@/app/components/exampleLink";
 import classNames from "classnames";
 
 export default function Home() {
@@ -18,17 +15,8 @@ export default function Home() {
       >
         <div className="flex flex-col items-center gap-2 md:gap-10 pb-12 md:px-6 lg:px-10 w-full text-center ">
           <div className="flex  pt-12 flex-col gap-1 items-center relative z-10">
-            <a href="https://roboflow.com" target="_blank">
-              <Image
-                src="/static/roboflow_full_logo_color.svg"
-                alt="Roboflow Logo"
-                width={200}
-                height={100}
-              />
-            </a>
-            
             <h1 className="font-bold text-gray-900 text-4xl md:text-6xl">
-              Inference
+              InferGraph
             </h1>
             <h2
               className={classNames(
@@ -36,7 +24,7 @@ export default function Home() {
                 "font-bold text-base text-purple-500"
               )}
             >
-                developer-friendly vision inference
+                offline-first vision inference
             </h2>
        
           </div>

@@ -101,10 +101,10 @@ from inference_models.errors import (
 
 MODEL_ACCESS_ERROR_MESSAGES = {
     402: "Not enough credits to perform this request. Verify your workspace billing page.",
-    403: "Unauthorized access to roboflow API - check API key and make sure the key is valid and "
-    "have required scopes. Visit https://docs.roboflow.com/api-reference/authentication#retrieve-an-api-key "
+    403: "Unauthorized access to the model registry API - check API key and make sure the key is valid and "
+    "have required scopes. Set INFERGRAPH_API_KEY (or legacy ROBOFLOW_API_KEY). See OFFLINE.md "
     "to learn how to retrieve one.",
-    423: "Roboflow API usage is paused. Please contact your workspace administrator to re-enable api keys.",
+    423: "API usage is paused. Re-enable API keys with your workspace administrator.",
 }
 
 
@@ -247,7 +247,7 @@ def with_route_exceptions(route):
             resp = JSONResponse(
                 status_code=400,
                 content={
-                    "message": "Required Roboflow API key is missing. Visit https://docs.roboflow.com/api-reference/authentication#retrieve-an-api-key "
+                    "message": "Required API key is missing. Set INFERGRAPH_API_KEY (or legacy ROBOFLOW_API_KEY). See OFFLINE.md "
                     "to learn how to retrieve one."
                 },
             )
@@ -320,8 +320,8 @@ def with_route_exceptions(route):
             resp = JSONResponse(
                 status_code=401,
                 content={
-                    "message": "Unauthorized access to roboflow API - check API key and make sure the key is valid for "
-                    "workspace you use. Visit https://docs.roboflow.com/api-reference/authentication#retrieve-an-api-key "
+                    "message": "Unauthorized access to the model registry API - check API key and make sure the key is valid for "
+                    "workspace you use. Set INFERGRAPH_API_KEY (or legacy ROBOFLOW_API_KEY). See OFFLINE.md "
                     "to learn how to retrieve one."
                 },
             )
@@ -338,8 +338,8 @@ def with_route_exceptions(route):
             resp = JSONResponse(
                 status_code=403,
                 content={
-                    "message": "Unauthorized access to roboflow API - check API key and make sure the key is valid and "
-                    "have required scopes. Visit https://docs.roboflow.com/api-reference/authentication#retrieve-an-api-key "
+                    "message": "Unauthorized access to the model registry API - check API key and make sure the key is valid and "
+                    "have required scopes. Set INFERGRAPH_API_KEY (or legacy ROBOFLOW_API_KEY). See OFFLINE.md "
                     "to learn how to retrieve one."
                 },
             )
@@ -348,7 +348,7 @@ def with_route_exceptions(route):
             resp = JSONResponse(
                 status_code=423,
                 content={
-                    "message": "Roboflow API usage is paused. Please contact your workspace administrator to re-enable api keys."
+                    "message": "API usage is paused. Re-enable API keys with your workspace administrator."
                 },
             )
         except (RoboflowAPINotNotFoundError, ModelNotFoundError) as error:
@@ -356,7 +356,7 @@ def with_route_exceptions(route):
             resp = JSONResponse(
                 status_code=404,
                 content={
-                    "message": "Requested Roboflow resource not found. Make sure that workspace, project or model "
+                    "message": "Requested model resource not found. Make sure that workspace, project or model "
                     "you referred in request exists."
                 },
             )
@@ -488,7 +488,7 @@ def with_route_exceptions(route):
             logger.exception("%s: %s", type(error).__name__, error)
             resp = JSONResponse(
                 status_code=502,
-                content={"message": "Internal error. Request to Roboflow API failed."},
+                content={"message": "Internal error. Request to the model registry API failed."},
             )
         except InferenceModelNotFound as error:
             logger.exception("%s: %s", type(error).__name__, error)
@@ -502,7 +502,7 @@ def with_route_exceptions(route):
             resp = JSONResponse(
                 status_code=503,
                 content={
-                    "message": "Internal error. Could not connect to Roboflow API."
+                    "message": "Internal error. Could not connect to the model registry API."
                 },
             )
         except ModelManagerLockAcquisitionError as error:
@@ -520,7 +520,7 @@ def with_route_exceptions(route):
             resp = JSONResponse(
                 status_code=504,
                 content={
-                    "message": "Timeout when attempting to connect to Roboflow API."
+                    "message": "Timeout when attempting to connect to the model registry API."
                 },
             )
         except (
@@ -720,7 +720,7 @@ def with_route_exceptions_async(route):
             resp = JSONResponse(
                 status_code=400,
                 content={
-                    "message": "Required Roboflow API key is missing. Visit https://docs.roboflow.com/api-reference/authentication#retrieve-an-api-key "
+                    "message": "Required API key is missing. Set INFERGRAPH_API_KEY (or legacy ROBOFLOW_API_KEY). See OFFLINE.md "
                     "to learn how to retrieve one."
                 },
             )
@@ -793,8 +793,8 @@ def with_route_exceptions_async(route):
             resp = JSONResponse(
                 status_code=401,
                 content={
-                    "message": "Unauthorized access to roboflow API - check API key and make sure the key is valid for "
-                    "workspace you use. Visit https://docs.roboflow.com/api-reference/authentication#retrieve-an-api-key "
+                    "message": "Unauthorized access to the model registry API - check API key and make sure the key is valid for "
+                    "workspace you use. Set INFERGRAPH_API_KEY (or legacy ROBOFLOW_API_KEY). See OFFLINE.md "
                     "to learn how to retrieve one."
                 },
             )
@@ -811,8 +811,8 @@ def with_route_exceptions_async(route):
             resp = JSONResponse(
                 status_code=403,
                 content={
-                    "message": "Unauthorized access to roboflow API - check API key and make sure the key is valid and "
-                    "have required scopes. Visit https://docs.roboflow.com/api-reference/authentication#retrieve-an-api-key "
+                    "message": "Unauthorized access to the model registry API - check API key and make sure the key is valid and "
+                    "have required scopes. Set INFERGRAPH_API_KEY (or legacy ROBOFLOW_API_KEY). See OFFLINE.md "
                     "to learn how to retrieve one."
                 },
             )
@@ -821,7 +821,7 @@ def with_route_exceptions_async(route):
             resp = JSONResponse(
                 status_code=423,
                 content={
-                    "message": "Roboflow API usage is paused. Please contact your workspace administrator to re-enable api keys."
+                    "message": "API usage is paused. Re-enable API keys with your workspace administrator."
                 },
             )
         except (RoboflowAPINotNotFoundError, ModelNotFoundError) as error:
@@ -829,7 +829,7 @@ def with_route_exceptions_async(route):
             resp = JSONResponse(
                 status_code=404,
                 content={
-                    "message": "Requested Roboflow resource not found. Make sure that workspace, project or model "
+                    "message": "Requested model resource not found. Make sure that workspace, project or model "
                     "you referred in request exists."
                 },
             )
@@ -961,7 +961,7 @@ def with_route_exceptions_async(route):
             logger.exception("%s: %s", type(error).__name__, error)
             resp = JSONResponse(
                 status_code=502,
-                content={"message": "Internal error. Request to Roboflow API failed."},
+                content={"message": "Internal error. Request to the model registry API failed."},
             )
         except InferenceModelNotFound as error:
             logger.exception("%s: %s", type(error).__name__, error)
@@ -975,7 +975,7 @@ def with_route_exceptions_async(route):
             resp = JSONResponse(
                 status_code=503,
                 content={
-                    "message": "Internal error. Could not connect to Roboflow API."
+                    "message": "Internal error. Could not connect to the model registry API."
                 },
             )
         except ModelManagerLockAcquisitionError as error:
@@ -993,7 +993,7 @@ def with_route_exceptions_async(route):
             resp = JSONResponse(
                 status_code=504,
                 content={
-                    "message": "Timeout when attempting to connect to Roboflow API."
+                    "message": "Timeout when attempting to connect to the model registry API."
                 },
             )
         except (

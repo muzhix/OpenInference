@@ -120,11 +120,14 @@ def get_roboflow_model(
     **kwargs,
 ) -> ModelMetadata:
     if OFFLINE_MODE:
-        raise ModelRetrievalError(
-            message="Cannot fetch Roboflow model metadata - OFFLINE_MODE is "
-            "enabled. All models must be pre-cached locally.",
-            help_url="https://inference-models.roboflow.com/errors/model-retrieval/#modelretrievalerror",
-        )
+        from inference_models.registry_allowlist import is_registry_url_allowed
+
+        if not is_registry_url_allowed(ROBOFLOW_API_HOST):
+            raise ModelRetrievalError(
+                message="Cannot fetch Roboflow model metadata - OFFLINE_MODE is "
+                "enabled. All models must be pre-cached locally.",
+                help_url="https://inference-models.roboflow.com/errors/model-retrieval/#modelretrievalerror",
+            )
     proxy_url_builder = None
     if SECURE_GATEWAY:
         proxy_url_builder = roboflow_secure_gateway_proxy_url_builder
@@ -275,11 +278,14 @@ def get_one_page_of_model_metadata(
     proxy_url_builder: ProxyUrlBuilder = None,
 ) -> RoboflowModelMetadata:
     if OFFLINE_MODE:
-        raise ModelRetrievalError(
-            message="Cannot fetch Roboflow model metadata - OFFLINE_MODE is "
-            "enabled. All models must be pre-cached locally.",
-            help_url="https://inference-models.roboflow.com/errors/model-retrieval/#modelretrievalerror",
-        )
+        from inference_models.registry_allowlist import is_registry_url_allowed
+
+        if not is_registry_url_allowed(ROBOFLOW_API_HOST):
+            raise ModelRetrievalError(
+                message="Cannot fetch Roboflow model metadata - OFFLINE_MODE is "
+                "enabled. All models must be pre-cached locally.",
+                help_url="https://inference-models.roboflow.com/errors/model-retrieval/#modelretrievalerror",
+            )
     query = {
         "modelId": model_id,
     }

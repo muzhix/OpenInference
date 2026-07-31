@@ -1,13 +1,38 @@
-# InferGraph cloudless stack (P0).
-# Requires a pre-built inference CPU image; mounts a local cache volume.
+# InferGraph cloudless stack (P0 + P1 Registry).
 #
 # Example:
-#   docker compose -f docker/compose.infergraph-cloudless.yml up
-#
-# Pack models into ./infergraph-cache first, e.g.:
+#   # Pack into shared cache first
 #   uv run --project inferegistry inferegistry pack ... --cache-dir ./infergraph-cache
+#   docker compose -f docker/compose.infergraph-cloudless.yml up
 
 services:
+  inferegistry:
+    image: ${INFERGRAPH_REGISTRY_IMAGE:-python:3.11-slim}
+    working_dir: /app
+    command:
+      - bash
+      - -lc
+      - |
+        pip install -q -e /app/inferegistry &&
+        inferegistry serve --host 0.0.0.0 --port 8000 \
+          --registry-root /cache \
+          --public-base-url http://inferegistry:8000
+    environment:
+      INFERGRAPH_REGISTRY_ROOT: /cache
+      INFERENCE_HOME: /cache
+      MODEL_CACHE_DIR: /cache
+    volumes:
+      - ${INFERGRAPH_CACHE_DIR:-../infergraph-cache}:/cache
+      - ../inferegistry:/app/inferegistry
+      - ../inference_models:/app/inference_models
+    ports:
+      - "${INFERGRAPH_REGISTRY_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz')"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
   inference:
     image: ${INFERGRAPH_IMAGE:-roboflow/roboflow-inference-server-cpu:latest}
     env_file:
@@ -16,4 +41,7 @@ services:
       - "${INFERGRAPH_PORT:-9001}:9001"
     volumes:
       - ${INFERGRAPH_CACHE_DIR:-../infergraph-cache}:/cache
+    depends_on:
+      inferegistry:
+        condition: service_healthy
     restart: unless-stopped

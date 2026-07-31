@@ -1871,7 +1871,12 @@ def _get_from_url(
     headers: Optional[dict] = None,
 ) -> Union[Response, dict]:
     if OFFLINE_MODE:
-        raise ConnectionError("OFFLINE_MODE is enabled - cannot make API requests.")
+        from inference.core.infergraph_registry import offline_http_allowed_for_url
+
+        if not offline_http_allowed_for_url(url):
+            raise ConnectionError(
+                "OFFLINE_MODE is enabled - cannot make API requests."
+            )
     full_url = wrap_url(url)
     try:
         response = requests.get(

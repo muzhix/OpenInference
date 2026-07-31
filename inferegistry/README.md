@@ -1,13 +1,9 @@
 # inferegistry
 
-InferGraph local model/workflow cache tooling.
+InferGraph model Registry — local pack/import CLI and HTTP service compatible with
+Roboflow `external/stat` + `external/weights` clients.
 
-| Phase | Scope |
-| --- | --- |
-| **P0** | CLI: `pack`, `import-roboflow-cache`, `import-workflow` |
-| **P1** | HTTP Registry replacing `api.roboflow.com` |
-
-See also root [`OFFLINE.md`](../OFFLINE.md).
+See root [`OFFLINE.md`](../OFFLINE.md).
 
 ## Setup
 
@@ -16,43 +12,30 @@ cd inferegistry
 uv sync --extra dev
 ```
 
-## Commands
-
-### pack
-
-Write an inference-models package under `$cache/models-cache/...`:
+## CLI
 
 ```bash
-uv run inferegistry pack \
-  --model-id my-det/1 \
-  --weights ./weights.onnx \
-  --task object-detection \
-  --architecture yolov8 \
-  --class-names ./class_names.txt \
-  --inference-config ./inference_config.json \
-  --cache-dir /path/to/cache
+# Pack + register into index.json
+uv run inferegistry pack --model-id my-det/1 --weights ./weights.onnx \
+  --task object-detection --architecture yolov8 \
+  --class-names ./class_names.txt --cache-dir /path/to/cache
+
+uv run inferegistry register --model-id my-det/1 --cache-dir /path/to/cache
+
+uv run inferegistry serve --host 0.0.0.0 --port 8000 \
+  --registry-root /path/to/cache \
+  --public-base-url http://127.0.0.1:8000
 ```
 
-### import-roboflow-cache
+## HTTP
 
-Copy traditional (`model_type.json`) and/or `models-cache` packages into a local cache:
-
-```bash
-uv run inferegistry import-roboflow-cache \
-  --source /path/to/warm-or-export \
-  --cache-dir /path/to/cache
-```
-
-### import-workflow
-
-Write workflow JSON to `{cache}/workflow/local/{sha256(id)}.json` (same layout as `/build/api`):
-
-```bash
-uv run inferegistry import-workflow \
-  --workflow-id demo \
-  --source ./workflow.json \
-  --cache-dir /path/to/cache
-```
+| Method | Path | Role |
+| --- | --- | --- |
+| GET | `/models/v1/external/stat` | Compat metadata |
+| GET | `/models/v1/external/weights` | Compat packages + download URLs |
+| GET | `/artifacts/{modelId}/{packageId}/{file}` | Artifact bytes |
+| GET/POST/DELETE | `/v1/models` | Admin list/register/delete |
+| GET | `/healthz` | Health |
 
 ## Tests
 

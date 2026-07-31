@@ -1,4 +1,4 @@
-"""Click CLI for InferGraph pack / import tools."""
+"""Click CLI for InferGraph pack / import / registry serve."""
 
 from __future__ import annotations
 
@@ -9,11 +9,12 @@ import click
 from inferegistry.import_cache import import_roboflow_cache
 from inferegistry.import_workflow import import_workflow
 from inferegistry.pack import pack_model
+from inferegistry.store import RegistryStore
 
 
 @click.group()
 def main() -> None:
-    """InferGraph registry CLI — pack and import local model/workflow cache."""
+    """InferGraph registry CLI — pack, import, and HTTP Registry."""
 
 
 @main.command("pack")
@@ -78,7 +79,7 @@ def pack_command(
     package_id: str,
     backend: str | None,
 ) -> None:
-    """Pack weights into an InferGraph models-cache package."""
+    """Pack weights into an InferGraph models-cache package and register it."""
     package_dir = pack_model(
         model_id=model_id,
         weights=weights,
@@ -142,6 +143,75 @@ def import_workflow_command(
         cache_dir=cache_dir,
     )
     click.echo(f"Imported workflow `{workflow_id}` -> {path}")
+
+
+@main.command("register")
+@click.option(
+    "--model-id",
+    required=True,
+    help="Model id already present under models-cache.",
+)
+@click.option(
+    "--package-id",
+    default="default",
+    show_default=True,
+)
+@click.option(
+    "--cache-dir",
+    default=None,
+    type=click.Path(file_okay=False, path_type=str),
+    help="Registry root containing models-cache + index.json.",
+)
+def register_command(
+    model_id: str,
+    package_id: str,
+    cache_dir: str | None,
+) -> None:
+    """Register an already-packed package into the registry index."""
+    from inferegistry._paths import resolve_cache_dir
+
+    store = RegistryStore(resolve_cache_dir(cache_dir))
+    entry = store.register_package(model_id=model_id, package_id=package_id)
+    click.echo(json.dumps(entry, indent=2))
+
+
+@main.command("serve")
+@click.option(
+    "--host",
+    default="0.0.0.0",
+    show_default=True,
+)
+@click.option(
+    "--port",
+    default=8000,
+    show_default=True,
+    type=int,
+)
+@click.option(
+    "--registry-root",
+    default=None,
+    type=click.Path(file_okay=False, path_type=str),
+    help="Registry root (default: INFERGRAPH_REGISTRY_ROOT / INFERENCE_HOME).",
+)
+@click.option(
+    "--public-base-url",
+    default=None,
+    help="Base URL embedded in downloadUrl fields.",
+)
+def serve_command(
+    host: str,
+    port: int,
+    registry_root: str | None,
+    public_base_url: str | None,
+) -> None:
+    """Run the InferGraph Registry HTTP service."""
+    import uvicorn
+
+    from inferegistry.app import create_app
+
+    public_base = public_base_url or f"http://127.0.0.1:{port}"
+    app = create_app(registry_root=registry_root, public_base_url=public_base)
+    uvicorn.run(app, host=host, port=port)
 
 
 if __name__ == "__main__":

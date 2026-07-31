@@ -199,6 +199,13 @@ def pack_model(
         offline_compatibility_hash=offline_hash,
     )
 
+    from inferegistry.store import RegistryStore
+
+    RegistryStore(resolved_cache).register_package(
+        model_id=model_id,
+        package_id=package_id,
+    )
+
     return package_dir.resolve()
 
 

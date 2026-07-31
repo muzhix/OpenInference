@@ -97,11 +97,19 @@ def get_model_from_provider(
         )
     provider_handler = WEIGHTS_PROVIDERS[provider]
     if OFFLINE_MODE and model_provider_requires_network(provider=provider):
-        raise ModelRetrievalError(
-            message=f"Cannot fetch model metadata from provider '{provider}' - "
-            f"OFFLINE_MODE is enabled. All models must be pre-cached locally.",
-            help_url="https://inference-models.roboflow.com/errors/model-retrieval/#modelretrievalerror",
-        )
+        from inference_models.configuration import ROBOFLOW_API_HOST
+        from inference_models.registry_allowlist import is_registry_url_allowed
+
+        # InferGraph: allow the built-in "roboflow" provider when it points at
+        # an allowlisted local Registry host (never *.roboflow.com).
+        if not (
+            provider == "roboflow" and is_registry_url_allowed(ROBOFLOW_API_HOST)
+        ):
+            raise ModelRetrievalError(
+                message=f"Cannot fetch model metadata from provider '{provider}' - "
+                f"OFFLINE_MODE is enabled. All models must be pre-cached locally.",
+                help_url="https://inference-models.roboflow.com/errors/model-retrieval/#modelretrievalerror",
+            )
     return provider_handler(model_id, api_key, **kwargs)
 
 

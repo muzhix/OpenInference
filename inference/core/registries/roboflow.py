@@ -27,6 +27,7 @@ from inference.core.entities.types import (
 )
 from inference.core.env import (
     ALLOW_INFERENCE_MODELS_DIRECTLY_ACCESS_LOCAL_PACKAGES,
+    API_BASE_URL,
     CACHE_METADATA_LOCK_TIMEOUT,
     LAMBDA,
     MODELS_CACHE_AUTH_CACHE_MAX_SIZE,
@@ -508,11 +509,19 @@ def get_model_type(
         return project_task_type, model_type
 
     if OFFLINE_MODE:
-        raise ModelArtefactError(
-            f"Model `{model_id}` was not found in the local InferGraph cache. "
-            "Use `inferegistry pack` or `import-roboflow-cache` to add the model "
-            "before running with OFFLINE_MODE enabled."
+        from inference.core.infergraph_registry import (
+            has_allowlisted_registry,
+            is_registry_url_allowed,
         )
+
+        if has_allowlisted_registry() and is_registry_url_allowed(API_BASE_URL):
+            pass  # Fall through to InferGraph Registry lookup below.
+        else:
+            raise ModelArtefactError(
+                f"Model `{model_id}` was not found in the local InferGraph cache. "
+                "Use `inferegistry pack` or `import-roboflow-cache` to add the model "
+                "before running with OFFLINE_MODE enabled."
+            )
 
     if USE_INFERENCE_MODELS:
         api_data = get_model_metadata_from_inference_models_registry(

@@ -20,6 +20,22 @@ uv run inferegistry pack \
 
 Writes `$CACHE/models-cache/...` and upserts `index.json`.
 
+### Runtime pinning
+
+By default InferGraph **cold packs leave `runtime_compatibility_hash` unset**, so the
+same ONNX package loads under `OFFLINE_MODE` on other hosts (different torch/CUDA/ORT).
+
+Use `--pin-runtime` only when the weights are environment-specific (TensorRT `.engine`,
+custom CUDA builds). A pinned package is **skipped** on mismatch — pack again on the
+target machine, or omit the pin.
+
+```bash
+uv run inferegistry pack ... --pin-runtime
+```
+
+`convert` uses the same default (portable). Both still leave `offline_compatibility_hash`
+unset; that hash is only meaningful after a warm load.
+
 ## Convert traditional cache
 
 If you already have a warm Roboflow **traditional** package (`model_type.json` + weights):

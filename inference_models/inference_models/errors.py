@@ -1,4 +1,31 @@
+import os
 from typing import List, Optional
+
+# Legacy upstream docs host embedded in raise sites across this package.
+_LEGACY_ERRORS_DOCS_HOST = "https://inference-models.roboflow.com"
+# InferGraph default: local markdown (anchors preserved for class names).
+_DEFAULT_ERRORS_DOCS_BASE = (
+    "https://github.com/muzhix/inference/blob/main/docs/infergraph/errors.md"
+)
+
+
+def rewrite_help_url(url: Optional[str]) -> Optional[str]:
+    """Rehome Roboflow error-docs URLs to InferGraph docs (or strip).
+
+    ``INFERGRAPH_ERRORS_DOCS_BASE`` overrides the replacement base.
+    Set it to empty to omit help URLs from exception strings.
+    """
+    if not url:
+        return url
+    if _LEGACY_ERRORS_DOCS_HOST not in url:
+        return url
+    base = os.getenv("INFERGRAPH_ERRORS_DOCS_BASE", _DEFAULT_ERRORS_DOCS_BASE)
+    if base == "":
+        return None
+    anchor = ""
+    if "#" in url:
+        anchor = "#" + url.rsplit("#", 1)[1]
+    return f"{base.rstrip('/')}{anchor}"
 
 
 class BaseInferenceModelsError(Exception):
@@ -9,12 +36,13 @@ class BaseInferenceModelsError(Exception):
 
     @property
     def help_url(self) -> Optional[str]:
-        return self._help_url
+        return rewrite_help_url(self._help_url)
 
     def __str__(self) -> str:
-        if self._help_url is None:
+        url = self.help_url
+        if url is None:
             return super().__str__()
-        return f"{super().__str__()} - VISIT {self._help_url} FOR FURTHER SUPPORT"
+        return f"{super().__str__()} - VISIT {url} FOR FURTHER SUPPORT"
 
 
 class AssumptionError(BaseInferenceModelsError):

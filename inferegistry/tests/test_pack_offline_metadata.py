@@ -64,6 +64,9 @@ def test_pack_model_is_discoverable_via_inference_models_cache(
     assert config["trusted_source"] is True
     assert config["offline_manifest_version"] == 4
     assert config["package_artifacts"]
+    # Portable cold packs leave runtime hash unset (use pin_runtime=True to pin).
+    assert config.get("runtime_compatibility_hash") in (None, "")
+    assert config.get("offline_compatibility_hash") in (None, "")
 
     from inference_models.models.auto_loaders.core import (
         find_cached_model_package_dir,
@@ -77,6 +80,24 @@ def test_pack_model_is_discoverable_via_inference_models_cache(
     parsed = parse_model_config(config_path=str(config_path))
     assert parsed.task_type == "object-detection"
     assert parsed.model_architecture == "yolov8"
+
+
+def test_pack_pin_runtime_embeds_hash(
+    staged_detection_inputs: dict[str, Path],
+) -> None:
+    package_dir = pack_model(
+        model_id="pinned/1",
+        weights=staged_detection_inputs["weights"],
+        task="object-detection",
+        architecture="yolov8",
+        class_names=staged_detection_inputs["class_names"],
+        inference_config=staged_detection_inputs["inference_config"],
+        cache_dir=staged_detection_inputs["cache_dir"],
+        pin_runtime=True,
+    )
+    config = json.loads((package_dir / "model_config.json").read_text(encoding="utf-8"))
+    assert isinstance(config.get("runtime_compatibility_hash"), str)
+    assert len(config["runtime_compatibility_hash"]) == 64
 
 
 def test_pack_metadata_matches_get_model_type_models_cache_branch(

@@ -39,28 +39,28 @@ export default function Home() {
             </div>
             <Image
               src="/static/cone.svg"
-              alt="Roboflow Logo"
+              alt=""
               width={120}
               height={120}
               className="hidden md:flex flex-none absolute left-[-400px] -top-20 xl:left-[-450px] xl:-top-28 z-0"
             />
             <Image
               src="/static/trash.svg"
-              alt="Roboflow Logo"
+              alt=""
               width={110}
               height={110}
               className="hidden md:flex flex-none absolute -left-56 top-4 xl:-left-64 xl:top-6 z-0"
             />
             <Image
               src="/static/boat.svg"
-              alt="Roboflow Logo"
+              alt=""
               width={100}
               height={100}
               className="hidden md:flex flex-none absolute right-[-375px] top-36 xl:right-[-420px] xl:top-12 z-0"
             />
             <Image
               src="/static/car.svg"
-              alt="Roboflow Logo"
+              alt=""
               width={140}
               height={140}
               className="hidden md:flex flex-none absolute -right-56 top- xl:-right-56 xl:-top-6 z-0"
@@ -145,34 +145,34 @@ export default function Home() {
           </div>
           <div className="hideScrollbar flex items-stretch sm:items-center flex-col sm:flex-row gap-4 w-full overflow-visible sm:overflow-x-auto pt-4 sm:pt-3 pb-12 px-4 sm:px-[10%] ">
             <ExampleLink
-              href="https://github.com/roboflow/inference/tree/main/examples/gaze-detection"
+              href="https://github.com/muzhix/inference/tree/main/examples/gaze-detection"
               title="Gaze Detection"
               body="Detects the direction in which someone is looking and the point in a frame at which someone is looking."
               icon="👁️"
             />
             <ExampleLink
-              href="https://inference.roboflow.com/inference_helpers/inference_sdk/"
-              title="Inference Client"
-              body="Quickstart HTTP and UDP clients for use with Inference."
+              href="https://github.com/muzhix/inference/blob/main/OFFLINE.md"
+              title="Offline setup"
+              body="Pack models, run InferGraph Registry, and infer without Roboflow cloud."
               icon="⚡"
             />
             <ExampleLink
-              href="https://blog.roboflow.com/how-to-use-computer-vision-to-monitor-inventory/"
-              title="Monitor Inventory"
-              body="Use computer vision to analyze video streams, extract insights from video frames, and create actionable visualizations and CSV outputs."
-              icon="📦"
+              href="https://github.com/muzhix/inference/blob/main/docs/infergraph/build.md"
+              title="InferGraph Build"
+              body="Visual workflow editor served from this server at /workflows/local."
+              icon="🧩"
             />
             <ExampleLink
-              href="https://github.com/roboflow/inference/tree/main/examples/inference-dashboard-example"
+              href="https://github.com/muzhix/inference/tree/main/examples/inference-dashboard-example"
               title="Create an Inference Dashboard"
               body="Extract insights from video frames at defined intervals and generates informative visualizations and CSV outputs."
               icon="📊"
             />
             <ExampleLink
-              href="https://blog.roboflow.com/clip-image-search-faiss/"
-              title="Build Image-to-Image Search"
-              body="Build a CLIP powered search that uses images as input to find other similar images."
-              icon="🖼️"
+              href="https://github.com/muzhix/inference/blob/main/docs/infergraph/pack.md"
+              title="Pack a model"
+              body="Turn open-source weights into an InferGraph models-cache package for offline use."
+              icon="📦"
             />
           </div>
         </div>

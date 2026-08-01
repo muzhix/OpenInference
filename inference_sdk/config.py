@@ -202,8 +202,13 @@ WEBRTC_VIDEO_UPLOAD_BUFFER_LIMIT = int(
     os.getenv("WEBRTC_VIDEO_UPLOAD_BUFFER_LIMIT", "262144")
 )  # 256KB max buffered before backpressure
 
-# Roboflow API base URL for TURN config and other services
-RF_API_BASE_URL = os.getenv("RF_API_BASE_URL", "https://api.roboflow.com")
+# API base URL for TURN config and other services.
+# Prefer InferGraph Registry host when set; RF_API_BASE_URL wins if explicit.
+RF_API_BASE_URL = (
+    os.getenv("RF_API_BASE_URL")
+    or os.getenv("INFERGRAPH_API_HOST")
+    or "https://api.roboflow.com"
+)
 
 
 class InferenceSDKDeprecationWarning(Warning):

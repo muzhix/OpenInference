@@ -66,6 +66,8 @@ uv run inferegistry pack \
   --cache-dir ../infergraph-cache
 ```
 
+默认 **不**写入 `runtime_compatibility_hash`（可移植冷包）。仅当权重依赖本机 CUDA/TRT 时加 `--pin-runtime`。详见 [`docs/infergraph/pack.md`](docs/infergraph/pack.md)。
+
 导入官方 cache / workflow：
 
 ```bash
@@ -160,12 +162,25 @@ cd inferegistry && uv sync --extra dev && uv run pytest -q
 - `cd infergraph-build && npm run check`
 - `python scripts/infergraph_release_scan.py`
 
-## 非目标
+## SDK / WebRTC
+
+`inference_sdk` 读取 `RF_API_BASE_URL`，未设置时回落 `INFERGRAPH_API_HOST`，再回落上游默认。InferGraph 部署请 `source env.infergraph` 或显式：
+
+```bash
+export INFERGRAPH_API_HOST=http://127.0.0.1:8000
+```
+
+## 错误文档链接
+
+`inference_models` 异常中的 `VISIT …` 链接会把 `inference-models.roboflow.com` 改写到
+[`docs/infergraph/errors.md`](docs/infergraph/errors.md)（可用 `INFERGRAPH_ERRORS_DOCS_BASE` 覆盖；设为空则省略）。
+
+## 非目标（仍延期）
 
 - 像素级复刻商业 Roboflow Build UI；Universe 模板市场
 - 全局改代码默认 `API_BASE_URL` / 重命名 `roboflow_*.py` 模块
-- 删除 deprecated `ROBOFLOW_*` 环境变量别名（major 版本）
-- 全量 SDK/CLI 默认 endpoint 改名；全站 mkdocs CDN / `site_name` 去品牌
+- **删除** deprecated `ROBOFLOW_*` 环境变量别名（major 版本；现已有 `INFERGRAPH_*` 优先）
+- 全站 mkdocs CDN / `site_name` 去品牌
 - 删除云 sink 源码
 - legacy `/ort` / `getWeights`
 - 使用或分发 `inference/enterprise/`

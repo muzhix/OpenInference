@@ -21,7 +21,8 @@ const dockerCode = `import requests
 
 dataset_id = "soccer-players-5fuqs"
 version_id = "1"
-image_url = "https://source.roboflow.com/pwYAXv9BTpqLyFfgQoPZ/u48G0UpWfk8giSw7wrU8/original.jpg"
+# Local file — remote URL fetch may be blocked in OFFLINE_MODE
+image_path = "./bus.jpg"
 # Prefer INFERGRAPH_API_KEY (ROBOFLOW_API_KEY still works)
 api_key = "INFERGRAPH_API_KEY"
 confidence = 0.5
@@ -31,10 +32,10 @@ url = f"http://localhost:9001/{dataset_id}/{version_id}"
 params = {
     "api_key": api_key,
     "confidence": confidence,
-    "image": image_url,
 }
 
-res = requests.post(url, params=params)
+with open(image_path, "rb") as f:
+    res = requests.post(url, params=params, files={"file": f})
 print(res.json())
 `;
 
@@ -47,7 +48,7 @@ model = get_model(
 )
 
 results = model.infer(
-    image="https://source.roboflow.com/pwYAXv9BTpqLyFfgQoPZ/u48G0UpWfk8giSw7wrU8/original.jpg",
+    image="./bus.jpg",
     confidence=0.5,
     iou_threshold=0.5
 )
@@ -62,9 +63,7 @@ model = Clip(
     api_key = "INFERGRAPH_API_KEY"
 )
 
-image_url = "https://source.roboflow.com/7fLqS2r1SV8mm0YzyI0c/yy6hjtPUFFkq4yAvhkvs/original.jpg"
-
-embeddings = model.embed_image(image_url)
+embeddings = model.embed_image("./bus.jpg")
 
 print(embeddings)
 `;
@@ -76,9 +75,7 @@ model = SegmentAnything(
     api_key = "INFERGRAPH_API_KEY"
 )
 
-image_url = "https://source.roboflow.com/7fLqS2r1SV8mm0YzyI0c/yy6hjtPUFFkq4yAvhkvs/original.jpg"
-
-embeddings = model.embed_image(image_url)
+embeddings = model.embed_image("./bus.jpg")
 
 print(embeddings)
 `;
@@ -137,7 +134,6 @@ function Code({ code }: CodeProps) {
         className="text-gray-700 absolute w-24 h-8 top-2 right-2 bg-white text-sm flex items-center justify-center border rounded-tr-md rounded-bl-md cursor-pointer select-none hover:bg-gray-100"
         onClick={copyToClipboard}
       >
-        <i className="far fa-copy h-4 w-4 mr-1 text-sm" />
         Copy
       </div>
     </div>

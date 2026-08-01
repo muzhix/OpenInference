@@ -3098,6 +3098,7 @@ def attempt_loading_model_from_offline_cache(
             continue
         if (
             is_versioned_manifest
+            and package_config.runtime_compatibility_hash is not None
             and package_config.runtime_compatibility_hash
             != current_runtime_compatibility_hash
         ):

@@ -68,6 +68,15 @@ def main() -> None:
     default=None,
     help="Backend override (onnx / torch / trt). Inferred from weights suffix when omitted.",
 )
+@click.option(
+    "--pin-runtime/--no-pin-runtime",
+    default=False,
+    show_default=True,
+    help=(
+        "Embed runtime_compatibility_hash (torch/CUDA/ORT). "
+        "Default off = portable cold pack; use for TRT/CUDA-specific engines."
+    ),
+)
 def pack_command(
     model_id: str,
     weights: str,
@@ -78,6 +87,7 @@ def pack_command(
     cache_dir: str | None,
     package_id: str,
     backend: str | None,
+    pin_runtime: bool,
 ) -> None:
     """Pack weights into an InferGraph models-cache package and register it."""
     package_dir = pack_model(
@@ -90,8 +100,14 @@ def pack_command(
         cache_dir=cache_dir,
         package_id=package_id,
         backend=backend,
+        pin_runtime=pin_runtime,
     )
     click.echo(f"Packed model `{model_id}` -> {package_dir}")
+    if pin_runtime:
+        click.echo(
+            "Note: package is pinned to this host's runtime; "
+            "OFFLINE loads on a different torch/CUDA/ORT will skip it."
+        )
 
 
 @main.command("import-roboflow-cache")

@@ -125,6 +125,7 @@ def pack_model(
     cache_dir: Optional[str | Path] = None,
     package_id: str = "default",
     backend: Optional[str] = None,
+    pin_runtime: bool = False,
 ) -> Path:
     """Pack model artefacts into ``models-cache`` for offline InferGraph use.
 
@@ -138,6 +139,9 @@ def pack_model(
         cache_dir: Cache root; defaults to ``INFERENCE_HOME`` / ``MODEL_CACHE_DIR``.
         package_id: OS-safe alphanumeric package id (default ``default``).
         backend: Optional backend override; otherwise inferred from weights suffix.
+        pin_runtime: When True, embed ``runtime_compatibility_hash`` so OFFLINE
+            loads require a matching torch/CUDA/ORT environment. Default False
+            for portable cold packs (recommended for ONNX).
 
     Returns:
         Absolute path to the written package directory.
@@ -177,12 +181,14 @@ def pack_model(
         packed_files[INFERENCE_CONFIG_HANDLE] = destination_inference_config
 
     package_artifacts = build_package_artifacts(packed_files)
-    runtime_hash = auto_loaders_core._runtime_compatibility_hash(
-        runtime_x_ray=x_ray_runtime_environment()
-    )
-    # Leave offline_compatibility_hash unset for cold packs.
-    # Loader constraint hashes are only known at warm/load time; a content-based
-    # stand-in would never match and block OFFLINE_MODE loads (see auto_loaders).
+    # Cold packs leave runtime + offline hashes unset so OFFLINE_MODE loads are
+    # portable across hosts. Use pin_runtime=True (CLI --pin-runtime) for
+    # TensorRT / CUDA-specific engines that must not migrate.
+    runtime_hash = None
+    if pin_runtime:
+        runtime_hash = auto_loaders_core._runtime_compatibility_hash(
+            runtime_x_ray=x_ray_runtime_environment()
+        )
     config_path = str(package_dir / "model_config.json")
 
     auto_loaders_core.dump_model_config_for_offline_use(

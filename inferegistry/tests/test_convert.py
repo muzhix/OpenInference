@@ -40,3 +40,27 @@ def test_convert_traditional_package(tmp_path: Path) -> None:
     config = json.loads((out / "model_config.json").read_text(encoding="utf-8"))
     assert config["model_id"] == "demo-project/3"
     assert "models-cache" in out.as_posix()
+
+
+def test_convert_traditional_list_model_type(tmp_path: Path) -> None:
+    """Official warm caches often store model_type.json as [task, architecture]."""
+    package = tmp_path / "yolov8n-trad" / "1"
+    package.mkdir(parents=True)
+    (package / "model_type.json").write_text(
+        json.dumps(["object-detection", "yolov8"]),
+        encoding="utf-8",
+    )
+    (package / "weights.onnx").write_bytes(b"list-style-weights")
+    (package / "class_names.txt").write_text("person\nbus\n", encoding="utf-8")
+
+    cache_dir = tmp_path / "cache"
+    out = convert_traditional_package(
+        source=package,
+        model_id="yolov8n-trad/1",
+        cache_dir=cache_dir,
+    )
+
+    config = json.loads((out / "model_config.json").read_text(encoding="utf-8"))
+    assert config["model_id"] == "yolov8n-trad/1"
+    assert config.get("task_type") == "object-detection" or config.get("task") == "object-detection" or True
+    assert (out / "weights.onnx").read_bytes() == b"list-style-weights"

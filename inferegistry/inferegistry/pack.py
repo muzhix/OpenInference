@@ -180,7 +180,9 @@ def pack_model(
     runtime_hash = auto_loaders_core._runtime_compatibility_hash(
         runtime_x_ray=x_ray_runtime_environment()
     )
-    offline_hash = _offline_compatibility_hash(packed_files)
+    # Leave offline_compatibility_hash unset for cold packs.
+    # Loader constraint hashes are only known at warm/load time; a content-based
+    # stand-in would never match and block OFFLINE_MODE loads (see auto_loaders).
     config_path = str(package_dir / "model_config.json")
 
     auto_loaders_core.dump_model_config_for_offline_use(
@@ -196,7 +198,7 @@ def pack_model(
         package_artifacts=package_artifacts,
         dependency_package_paths=[],
         runtime_compatibility_hash=runtime_hash,
-        offline_compatibility_hash=offline_hash,
+        offline_compatibility_hash=None,
     )
 
     from inferegistry.store import RegistryStore
@@ -231,8 +233,8 @@ def minimal_inference_config(
             "training_input_size": {"height": height, "width": width},
             "dynamic_spatial_size_supported": True,
             "dynamic_spatial_size_mode": {
-                "type": "divisible-padding",
-                "divisor": 32,
+                "type": "pad-to-be-divisible",
+                "value": 32,
             },
             "color_mode": "rgb",
             "resize_mode": "letterbox",
@@ -245,12 +247,8 @@ def minimal_inference_config(
             "max_dynamic_batch_size": 8,
         },
         "post_processing": {
-            "nms": {
-                "enabled": True,
-                "class_agnostic": False,
-                "iou_threshold": 0.45,
-                "max_detections": 300,
-            },
+            "type": "nms",
+            "fused": False,
         },
     }
 

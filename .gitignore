@@ -224,3 +224,6 @@ inference_testing
 openspec*/
 opsx/
 checkpoints/
+
+# Local InferGraph e2e cache
+infergraph-cache/

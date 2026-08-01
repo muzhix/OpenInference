@@ -54,7 +54,7 @@ def _find_traditional_package(source: Path, model_id: Optional[str]) -> Path:
                 meta = json.loads((package / MODEL_TYPE_JSON).read_text(encoding="utf-8"))
             except json.JSONDecodeError:
                 continue
-            if meta.get("model_id") == model_id:
+            if isinstance(meta, dict) and meta.get("model_id") == model_id:
                 return package
             # Match by relative path dataset/version
             rel = package.relative_to(source).as_posix()
@@ -142,9 +142,26 @@ def convert_traditional_package(
 
     package_dir = _find_traditional_package(source_path, model_id)
     meta = json.loads((package_dir / MODEL_TYPE_JSON).read_text(encoding="utf-8"))
+    # Official warm caches use either a dict metadata or a 2-tuple list:
+    #   ["object-detection", "yolov8"]
+    meta_task: Optional[str] = None
+    meta_arch: Optional[str] = None
+    meta_model_id: Optional[str] = None
+    if isinstance(meta, list) and len(meta) >= 2:
+        meta_task, meta_arch = str(meta[0]), str(meta[1])
+    elif isinstance(meta, dict):
+        meta_model_id = meta.get("model_id")
+        meta_task = meta.get("project_task_type") or meta.get("task_type")
+        meta_arch = meta.get("model_type") or meta.get("architecture")
+    else:
+        raise ValueError(
+            f"Unsupported {MODEL_TYPE_JSON} shape in {package_dir}: "
+            "expected object or [task, architecture]."
+        )
+
     resolved_model_id = (
         model_id
-        or meta.get("model_id")
+        or meta_model_id
         or (
             package_dir.relative_to(source_path).as_posix()
             if package_dir != source_path
@@ -160,8 +177,8 @@ def convert_traditional_package(
                 "Pass --model-id like `dataset/1`. See docs/infergraph/pack.md."
             )
 
-    resolved_task = task or meta.get("project_task_type") or meta.get("task_type")
-    resolved_arch = architecture or meta.get("model_type") or meta.get("architecture")
+    resolved_task = task or meta_task
+    resolved_arch = architecture or meta_arch
     if not resolved_task or not resolved_arch:
         raise ValueError(
             f"Cannot determine task/architecture from {package_dir / MODEL_TYPE_JSON}. "

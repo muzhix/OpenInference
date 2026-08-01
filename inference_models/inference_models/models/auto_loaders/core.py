@@ -3109,6 +3109,7 @@ def attempt_loading_model_from_offline_cache(
             continue
         if (
             offline_compatibility_hash is not None
+            and package_config.offline_compatibility_hash is not None
             and package_config.offline_compatibility_hash != offline_compatibility_hash
         ):
             LOGGER.warning(

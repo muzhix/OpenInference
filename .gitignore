@@ -1,3 +1,6 @@
+roboflow-builder-analysis/tmp/
+roboflow-builder-analysis/evidence/
+rea_workflow.md
 watch-dev.sh
 cpu_http.py
 .temp/

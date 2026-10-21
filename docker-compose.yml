@@ -1,0 +1,30 @@
+version: "3.8"
+
+services:
+  inference-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: inference-server-cpu:instrumentator-fix
+    # image: roboflow/roboflow-inference-server-cpu:latest
+    container_name: inference-server
+    read_only: true
+    ports:
+      - "127.0.0.1:9001:9001"
+    volumes:
+      - "${HOME}/.inference/cache:/tmp:rw"
+    environment:
+      ENABLE_BUILDER: "true"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    networks:
+      - inference-network
+
+networks:
+  inference-network:
+    name: inference-network
+    driver: bridge

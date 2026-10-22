@@ -1,0 +1,15 @@
+{
+  "version": "1.0",
+  "inputs": [{ "type": "WorkflowImage", "name": "image" }],
+  "steps": [
+    {
+      "type": "roboflow_core/contrast_enhancement@v1",
+      "name": "contrast_enhancement",
+      "image": "$inputs.image",
+      "clip_limit": 0
+    }
+  ],
+  "outputs": [
+    { "type": "JsonField", "name": "output_image", "selector": "$steps.contrast_enhancement.image" }
+  ]
+}

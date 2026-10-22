@@ -649,6 +649,13 @@ if _WORKFLOWS_ROUTES_ENABLED:
 
     app.include_router(workflows_router.router)
 
+    # Before the legacy catch-all and the "/" landing mount, which would shadow /studio.
+    from inference_server.workflow_studio import router as workflow_studio_router
+    from inference_server.workflow_studio.static import mount_workflow_studio
+
+    app.include_router(workflow_studio_router.router)
+    mount_workflow_studio(app)
+
 if _cfg.ENABLE_BUILDER:
     from inference_server.builder.routes import router as builder_router
 

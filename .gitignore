@@ -233,3 +233,8 @@ modal/deploy_modal_*.sh
 
 # Font assets embedded in roboflow-workflows wheel — downloaded at build time, not committed
 workflows/roboflow_workflows/core_steps/visualizations/common/fonts/assets/
+
+# workflow studio
+workflow_studio/test-results/
+workflow_studio/playwright-report/
+workflow_studio/.vite/

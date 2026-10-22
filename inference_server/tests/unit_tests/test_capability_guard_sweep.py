@@ -73,6 +73,7 @@ ROUTES_DERIVING_THEIR_MODEL = {
     "/infer/depth-estimation",
 }
 ROUTES_TAKING_MODELS_INSIDE_WORKFLOW_SPECS = {
+    "/api/wf/run",
     "/infer/workflows",
     "/infer/workflows/{workspace_name}/{workflow_id}",
     "/workflows/blocks/describe",
@@ -86,6 +87,17 @@ ROUTES_TAKING_MODELS_INSIDE_WORKFLOW_SPECS = {
     "/{workspace_name}/workflows/{workflow_id}/describe_workload",
 }
 ROUTES_WITHOUT_MODEL_INPUT = {
+    "/api/wf/configs",
+    "/api/wf/delete",
+    "/api/wf/get",
+    "/api/wf/list",
+    "/api/wf/registry",
+    "/api/wf/save",
+    "/api/wf/saveDraft",
+    "/api/wf/spec",
+    "/api/wf/validate",
+    "/api/wf/versions",
+    "/api/wf/versions/{versionId}",
     "/clear_cache",
     "/dashboard.html",
     "/device/stats",

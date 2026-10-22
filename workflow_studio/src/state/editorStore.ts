@@ -12,7 +12,9 @@ import {
   addOutput,
   addStep,
   applyNodePositions,
+  computeAutoLayout,
   exportSpec,
+  graphNodeIds,
   generateStepName,
   localValidate,
   removeNode,
@@ -73,6 +75,8 @@ interface EditorState {
   livePositions: Record<string, UiPosition>;
   canvasLocked: boolean;
   minimapVisible: boolean;
+  /** Official "Arrange automatically": re-run auto layout whenever blocks are added. */
+  autoArrange: boolean;
 
   loadWorkflow: (url: string | null) => Promise<void>;
   mutate: (
@@ -90,6 +94,7 @@ interface EditorState {
   toggleRunPanel: () => void;
   setCanvasLocked: (locked: boolean) => void;
   toggleMinimap: () => void;
+  toggleAutoArrange: () => void;
 
   addBlock: (manifestType: string) => void;
   removeNodes: (nodeKeys: string[]) => void;
@@ -228,6 +233,7 @@ export const useEditorStore = create<EditorState>()((set, get) => ({
   livePositions: {},
   canvasLocked: false,
   minimapVisible: false,
+  autoArrange: true,
 
   loadWorkflow: async (url) => {
     set({
@@ -355,6 +361,7 @@ export const useEditorStore = create<EditorState>()((set, get) => ({
   toggleRunPanel: () => set({ runPanelOpen: !get().runPanelOpen }),
   setCanvasLocked: (locked) => set({ canvasLocked: locked }),
   toggleMinimap: () => set({ minimapVisible: !get().minimapVisible }),
+  toggleAutoArrange: () => set({ autoArrange: !get().autoArrange }),
 
   addBlock: (manifestType) => {
     const { palette, spec } = get();
@@ -370,7 +377,14 @@ export const useEditorStore = create<EditorState>()((set, get) => ({
       y: base.flowY + Math.floor(stepCount / 5) * 36,
     };
     const name = generateStepName(spec, manifestType);
-    get().mutate((current) => addStep(current, manifestType, undefined, position, useRegistryStore.getState().registry));
+    get().mutate((current) => {
+      const withStep = addStep(current, manifestType, undefined, position, useRegistryStore.getState().registry);
+      // Official "Arrange automatically": the re-arrange shares the add's
+      // single undo step, and never fires for drags or sticky notes.
+      return get().autoArrange
+        ? applyNodePositions(withStep, computeAutoLayout(withStep, graphNodeIds(withStep)))
+        : withStep;
+    });
     set({ palette: null, selectedNodeId: `$steps.${name}`, expandedNodeId: null });
   },
 

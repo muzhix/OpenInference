@@ -12,10 +12,10 @@ import {
   imageInputPropertyForBlock,
   selectorPropertiesForBlock,
 } from "./registryUtils";
-import { rewriteStepReferences, parseSelector, collectSelectorStrings } from "./selectors";
+import { rewriteStepReferences, rewriteInputReferences, parseSelector, collectSelectorStrings } from "./selectors";
 
 import type { BlockDescriptor, BlockRegistry } from "../types/registry";
-import type { UiNote, UiPosition, WorkflowSpecification, WorkflowStepSpec } from "../types/spec";
+import type { UiNote, UiPosition, WorkflowInputSpec, WorkflowSpecification, WorkflowStepSpec } from "../types/spec";
 import { isImageInputType, stepsToList } from "../types/spec";
 
 function uniqueName(existing: Iterable<string>, base: string): string {
@@ -434,6 +434,151 @@ export function applyNodePositions(
     }
   }
   return next;
+}
+
+/**
+ * Add a workflow input. The inline form supplies the name; a colliding name is
+ * made unique with a numeric suffix (defensive — the form validates first).
+ * WorkflowParameter entries may carry a kind annotation and a default value.
+ */
+export function addInput(
+  spec: WorkflowSpecification,
+  name: string,
+  type: string,
+  kind?: string[],
+  defaultValue?: unknown,
+): WorkflowSpecification {
+  const trimmed = name.trim();
+  const names = new Set((spec.inputs ?? []).map((input) => input.name));
+  let unique = trimmed;
+  let counter = 2;
+  while (names.has(unique)) {
+    unique = `${trimmed}_${counter}`;
+    counter += 1;
+  }
+  const entry: WorkflowInputSpec = { type, name: unique };
+  if (kind) {
+    entry.kind = kind;
+  }
+  if (defaultValue !== undefined) {
+    entry.default_value = defaultValue;
+  }
+  return { ...spec, inputs: [...(spec.inputs ?? []), entry] };
+}
+
+/**
+ * Remove a workflow input. References to `$inputs.<name>` are left dangling on
+ * purpose: the validator flags them, matching the cloud builder's behavior.
+ */
+/** Move an input to another index. A no-op when the name or index is out of range. */
+export function moveInput(spec: WorkflowSpecification, name: string, toIndex: number): WorkflowSpecification {
+  const inputs = [...(spec.inputs ?? [])];
+  const fromIndex = inputs.findIndex((input) => input.name === name);
+  if (fromIndex < 0 || toIndex < 0 || toIndex >= inputs.length || fromIndex === toIndex) {
+    return spec;
+  }
+  const [moved] = inputs.splice(fromIndex, 1);
+  inputs.splice(toIndex, 0, moved);
+  return { ...spec, inputs };
+}
+
+/**
+ * Set or clear a parameter input's default. `undefined` drops both the value
+ * and the kind annotation, matching the builder (kind is inferred from the value).
+ */
+export function setInputDefault(
+  spec: WorkflowSpecification,
+  name: string,
+  defaultValue: unknown,
+  kind?: string[],
+): WorkflowSpecification {
+  const inputs = (spec.inputs ?? []).map((input) => {
+    if (input.name !== name) {
+      return input;
+    }
+    const next: WorkflowInputSpec = { ...input };
+    if (defaultValue === undefined) {
+      delete next.default_value;
+      delete next.kind;
+      return next;
+    }
+    next.default_value = defaultValue;
+    if (kind) {
+      next.kind = kind;
+    }
+    return next;
+  });
+  return { ...spec, inputs };
+}
+
+/** Rename an input and, for parameters, set or clear its default in one step. */
+export function editInput(
+  spec: WorkflowSpecification,
+  oldName: string,
+  newName: string,
+  defaultUpdate?: { value: unknown; kind?: string[] } | "clear",
+): WorkflowSpecification {
+  const trimmed = newName.trim();
+  let next = spec;
+  if (trimmed && trimmed !== oldName) {
+    next = renameInput(next, oldName, trimmed);
+  }
+  if (defaultUpdate === undefined) {
+    return next;
+  }
+  const target = trimmed || oldName;
+  if (defaultUpdate === "clear") {
+    return setInputDefault(next, target, undefined);
+  }
+  return setInputDefault(next, target, defaultUpdate.value, defaultUpdate.kind);
+}
+
+export function removeInput(spec: WorkflowSpecification, name: string): WorkflowSpecification {
+  return { ...spec, inputs: (spec.inputs ?? []).filter((input) => input.name !== name) };
+}
+
+/** Rename a workflow input, rewriting `$inputs.<old>` references everywhere. */
+export function renameInput(spec: WorkflowSpecification, oldName: string, newName: string): WorkflowSpecification {
+  const trimmed = newName.trim();
+  if (!trimmed || trimmed === oldName) {
+    return spec;
+  }
+  const names = new Set((spec.inputs ?? []).map((input) => input.name));
+  if (names.has(trimmed)) {
+    return spec;
+  }
+  const inputs = (spec.inputs ?? []).map((input) => (input.name === oldName ? { ...input, name: trimmed } : input));
+  const steps = stepsToList(spec.steps).map(({ step }) => {
+    const nextStep: WorkflowStepSpec = { ...step };
+    for (const [property, value] of Object.entries(step)) {
+      if (property === "type" || property === "name") {
+        continue;
+      }
+      nextStep[property] = rewriteInputReferences(value, oldName, trimmed);
+    }
+    return nextStep;
+  });
+  const outputs = (spec.outputs ?? []).map((output) => ({
+    ...output,
+    selector: rewriteInputReferences(output.selector, oldName, trimmed) as string,
+  }));
+  return { ...spec, inputs, steps, outputs };
+}
+
+/** Rename a workflow output row (output names are not selector targets). */
+export function renameOutput(spec: WorkflowSpecification, oldName: string, newName: string): WorkflowSpecification {
+  const trimmed = newName.trim();
+  if (!trimmed || trimmed === oldName) {
+    return spec;
+  }
+  const names = new Set((spec.outputs ?? []).map((output) => output.name));
+  if (names.has(trimmed)) {
+    return spec;
+  }
+  return {
+    ...spec,
+    outputs: (spec.outputs ?? []).map((output) => (output.name === oldName ? { ...output, name: trimmed } : output)),
+  };
 }
 
 export function addOutput(spec: WorkflowSpecification): WorkflowSpecification {

@@ -8,6 +8,7 @@
 import { create } from "zustand";
 
 import {
+  addInput,
   addNote,
   addOutput,
   addStep,
@@ -25,6 +26,11 @@ import {
   setParam,
   toggleDisabled,
   updateNote,
+  editInput,
+  moveInput,
+  removeInput,
+  renameInput,
+  renameOutput,
 } from "../adapter";
 import type { ValidationIssue } from "../adapter";
 import { fetchGet, fetchSpec, parseConfig, saveDraft, saveWorkflow, validateSpec } from "../api/workflowApi";
@@ -103,6 +109,16 @@ interface EditorState {
   setOutputBinding: (name: string, selector: string) => void;
   addWorkflowOutput: () => void;
   removeWorkflowOutput: (name: string) => void;
+  addWorkflowInput: (name: string, type: string, kind?: string[], defaultValue?: unknown) => void;
+  removeWorkflowInput: (name: string) => void;
+  renameWorkflowInput: (oldName: string, newName: string) => void;
+  moveWorkflowInput: (name: string, toIndex: number) => void;
+  editWorkflowInput: (
+    oldName: string,
+    newName: string,
+    defaultUpdate?: { value: unknown; kind?: string[] } | "clear",
+  ) => void;
+  renameWorkflowOutput: (oldName: string, newName: string) => void;
   toggleNodeDisabled: (nodeKey: string) => void;
   addNoteAt: (position: UiPosition, text?: string) => void;
   updateNoteText: (noteId: string, text: string) => void;
@@ -385,7 +401,7 @@ export const useEditorStore = create<EditorState>()((set, get) => ({
         ? applyNodePositions(withStep, computeAutoLayout(withStep, graphNodeIds(withStep)))
         : withStep;
     });
-    set({ palette: null, selectedNodeId: `$steps.${name}`, expandedNodeId: null });
+    set({ palette: null, selectedNodeId: null, expandedNodeId: null });
   },
 
   removeNodes: (nodeKeys) => {
@@ -422,6 +438,24 @@ export const useEditorStore = create<EditorState>()((set, get) => ({
 
   removeWorkflowOutput: (name) => {
     get().mutate((spec) => removeOutput(spec, name));
+  },
+  addWorkflowInput: (name, type, kind, defaultValue) => {
+    get().mutate((spec) => addInput(spec, name, type, kind, defaultValue));
+  },
+  removeWorkflowInput: (name) => {
+    get().mutate((spec) => removeInput(spec, name));
+  },
+  renameWorkflowInput: (oldName, newName) => {
+    get().mutate((spec) => renameInput(spec, oldName, newName));
+  },
+  moveWorkflowInput: (name, toIndex) => {
+    get().mutate((spec) => moveInput(spec, name, toIndex));
+  },
+  editWorkflowInput: (oldName, newName, defaultUpdate) => {
+    get().mutate((spec) => editInput(spec, oldName, newName, defaultUpdate));
+  },
+  renameWorkflowOutput: (oldName, newName) => {
+    get().mutate((spec) => renameOutput(spec, oldName, newName));
   },
 
   toggleNodeDisabled: (nodeKey) => {

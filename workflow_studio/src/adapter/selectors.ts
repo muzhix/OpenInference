@@ -58,6 +58,28 @@ export function collectSelectorStrings(value: unknown, out: string[] = []): stri
   return out;
 }
 
+/** Rewrite `$inputs.<oldName>` references inside an arbitrary param value. */
+export function rewriteInputReferences(value: unknown, oldName: string, newName: string): unknown {
+  if (typeof value === "string") {
+    const oldPrefix = `$inputs.${oldName}`;
+    if (value.startsWith(oldPrefix)) {
+      return `$inputs.${newName}` + value.slice(oldPrefix.length);
+    }
+    return value;
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => rewriteInputReferences(item, oldName, newName));
+  }
+  if (value && typeof value === "object") {
+    const next: Record<string, unknown> = {};
+    for (const [key, item] of Object.entries(value)) {
+      next[key] = rewriteInputReferences(item, oldName, newName);
+    }
+    return next;
+  }
+  return value;
+}
+
 /** Rewrite `$steps.<oldName>.` references inside an arbitrary param value. */
 export function rewriteStepReferences(value: unknown, oldName: string, newName: string): unknown {
   if (typeof value === "string") {

@@ -10,7 +10,8 @@ import { useEffect, useRef, useState } from "react";
 
 import { useReactFlow } from "@xyflow/react";
 
-import { computeAutoLayout, faClasses, graphNodeIds } from "../../adapter";
+import { computeAutoLayout, graphNodeIds } from "../../adapter";
+import { UiIcon } from "./hollowIcons";
 import { useEditorStore } from "../../state/editorStore";
 import type { ReactNode } from "react";
 
@@ -104,10 +105,10 @@ export function CanvasToolbar() {
       aria-label="Canvas tools"
     >
       <ToolButton label="Undo" onClick={undo} disabled={!canUndo}>
-        <i className={`${faClasses("far fa-undo")} text-sm`} aria-hidden="true" />
+        <UiIcon name="undo" className="text-base" />
       </ToolButton>
       <ToolButton label="Redo" onClick={redo} disabled={!canRedo}>
-        <i className={`${faClasses("far fa-redo")} text-sm`} aria-hidden="true" />
+        <UiIcon name="redo" className="text-base" />
       </ToolButton>
       <Separator />
       <div className="relative flex items-center" ref={optionsRef}>
@@ -115,14 +116,14 @@ export function CanvasToolbar() {
           label={autoArrange ? "Auto layout (automatic)" : "Auto layout (manual)"}
           onClick={runAutoLayout}
         >
-          <i className={`${faClasses("far fa-sitemap")} text-sm`} aria-hidden="true" />
+          <UiIcon name="sitemap" className="text-base" />
         </ToolButton>
         <ToolButton
           label="Auto layout options"
           className="w-4"
           onClick={() => setOptionsOpen((open) => !open)}
         >
-          <i className={`${faClasses("far fa-chevron-up")} text-[9px]`} aria-hidden="true" />
+          <UiIcon name="chevron-up" className="text-[10px]" />
         </ToolButton>
         {optionsOpen ? (
           <div className="absolute bottom-full left-0 mb-2 w-64 rounded-lg border border-gray-200 bg-white p-1 shadow-lg">
@@ -134,7 +135,7 @@ export function CanvasToolbar() {
                 setOptionsOpen(false);
               }}
             >
-              <i className={`${faClasses("far fa-sitemap")} text-gray-400`} aria-hidden="true" />
+              <UiIcon name="sitemap" className="text-sm text-gray-400" />
               Arrange now
             </button>
             <div className="flex items-center justify-between rounded-md px-2 py-1.5">
@@ -164,27 +165,27 @@ export function CanvasToolbar() {
       </div>
       <Separator />
       <ToolButton label="Zoom out" onClick={() => zoomOut({ duration: 150 })}>
-        <i className={`${faClasses("far fa-minus")} text-sm`} aria-hidden="true" />
+        <UiIcon name="minus" className="text-base" />
       </ToolButton>
       <ToolButton label="Zoom in" onClick={() => zoomIn({ duration: 150 })}>
-        <i className={`${faClasses("far fa-plus")} text-sm`} aria-hidden="true" />
+        <UiIcon name="plus" className="text-base" />
       </ToolButton>
       <Separator />
       <ToolButton
         label={locked ? "Unlock interactions" : "Lock interactions"}
         onClick={() => setCanvasLocked(!locked)}
       >
-        <i className={`${faClasses(locked ? "far fa-lock" : "far fa-lock-open")} text-sm`} aria-hidden="true" />
+        <UiIcon name={locked ? "lock" : "lock-open"} className="text-base" />
       </ToolButton>
       <Separator />
       <ToolButton label="Fit view" onClick={() => fitView({ duration: 200, padding: 0.2 })}>
-        <i className={`${faClasses("far fa-expand")} text-sm`} aria-hidden="true" />
+        <UiIcon name="expand" className="text-base" />
       </ToolButton>
       <ToolButton
         label={minimapVisible ? "Hide minimap" : "Show minimap"}
         onClick={toggleMinimap}
       >
-        <i className={`${faClasses("far fa-map")} text-sm`} aria-hidden="true" />
+        <UiIcon name="map" className="text-base" />
       </ToolButton>
     </div>
   );

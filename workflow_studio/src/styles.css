@@ -59,3 +59,12 @@ body {
 .workflow-studio-canvas .react-flow__attribution {
   background: transparent;
 }
+
+/* Official open-node mask: while a node is OPEN (its form shown), every other
+   node dims and cannot be interacted with until it is closed. */
+/* react-flow sets an inline `pointer-events: all` on node wrappers, so the
+   none needs !important to actually block interaction. */
+.workflow-studio-canvas[data-node-open="true"] .react-flow__node:not(.selected) {
+  opacity: 0.4;
+  pointer-events: none !important;
+}

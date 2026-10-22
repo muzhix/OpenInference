@@ -9,11 +9,12 @@ import {
 } from "@xyflow/react";
 import type { Connection, NodeChange, NodeTypes, OnBeforeDelete } from "@xyflow/react";
 
-import { connectNodes, disconnectEdge, faClasses, sectionMetaOf, specToGraph } from "../../adapter";
+import { connectNodes, disconnectEdge, sectionMetaOf, specToGraph } from "../../adapter";
 import type { AppEdge, AppNode, WorkflowNodeData } from "../../adapter";
 import { useEditorStore } from "../../state/editorStore";
 import { useRegistryStore } from "../../state/registryStore";
 import { BlocksPalette } from "./BlocksPalette";
+import { UiIcon } from "./hollowIcons";
 import { CanvasToolbar } from "./CanvasToolbar";
 import { StickyNoteNode } from "./nodes/StickyNoteNode";
 import { WorkflowInputNode } from "./nodes/WorkflowInputNode";
@@ -52,6 +53,7 @@ function CanvasInner() {
   const registry = useRegistryStore((state) => state.registry);
   const livePositions = useEditorStore((state) => state.livePositions);
   const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
+  const openNodeId = useEditorStore((state) => state.expandedNodeId);
   const minimapVisible = useEditorStore((state) => state.minimapVisible);
   const locked = useEditorStore((state) => state.canvasLocked);
 
@@ -67,6 +69,17 @@ function CanvasInner() {
         selected: node.id === selectedNodeId,
       })),
     [graph, livePositions, selectedNodeId],
+  );
+  // Official edge styling: 1px gray with a closed arrowhead; edges touching
+  // the selected node highlight purple and thicken.
+  const edges = useMemo(
+    () =>
+      graph.edges.map((edge) =>
+        edge.source === selectedNodeId || edge.target === selectedNodeId
+          ? { ...edge, style: { ...(edge.style ?? {}), stroke: "#7C3AED", strokeWidth: 2 } }
+          : edge,
+      ),
+    [graph, selectedNodeId],
   );
 
   const onNodesChange = useCallback((changes: NodeChange<AppNode>[]) => {
@@ -142,9 +155,39 @@ function CanvasInner() {
     },
     [],
   );
+  // Single click toggles a node open/collapsed (selection drives expansion);
+  // holding and moving drags the node instead. A click right after a drag is
+  // swallowed, and the second press of a double-click is ignored so the toggle
+  // does not fight the (legacy) double-click expansion path.
+  const suppressClickAfterDrag = useRef(false);
+  const lastToggleClick = useRef<{ id: string; at: number } | null>(null);
   const handleNodeClick = useCallback((event: React.MouseEvent, node: AppNode) => {
     lastNodeClick.current = { id: node.id, x: event.clientX, y: event.clientY, at: Date.now() };
-    useEditorStore.getState().setSelected(node.id);
+    if (suppressClickAfterDrag.current) {
+      suppressClickAfterDrag.current = false;
+      return;
+    }
+    // Clicks on controls INSIDE an open node (buttons, inputs, links) must not
+    // collapse it — only clicks on the node body toggle open/closed.
+    const target = event.target as Element;
+    if (target.closest("button, input, textarea, select, a, [role='button'], [role='switch'], [role='tooltip']")) {
+      return;
+    }
+    const recent = lastToggleClick.current;
+    lastToggleClick.current = { id: node.id, at: Date.now() };
+    if (recent && recent.id === node.id && Date.now() - recent.at < 320) {
+      return;
+    }
+    // react-flow selects the node on mousedown already; the OPEN state is our
+    // own single toggle so the form/mask follow clicks, not drags.
+    const store = useEditorStore.getState();
+    store.setExpanded(store.expandedNodeId === node.id ? null : node.id);
+  }, []);
+
+  // react-flow starts a "drag" on mere mousedown; only real movement should
+  // swallow the click that follows.
+  const handleNodeDrag = useCallback(() => {
+    suppressClickAfterDrag.current = true;
   }, []);
 
   // React Flow's interaction layer reports node double-clicks even while the
@@ -202,14 +245,16 @@ function CanvasInner() {
   return (
     <div
       className="workflow-studio-canvas relative h-full w-full"
+      data-node-open={openNodeId ? "true" : undefined}
       onDoubleClick={handleDoubleClick}
       onKeyDown={handleKeyDown}
     >
       <ReactFlow<AppNode, AppEdge>
         nodes={nodes}
-        edges={graph.edges}
+        edges={edges}
         nodeTypes={nodeTypes}
         onNodesChange={onNodesChange}
+        onNodeDrag={handleNodeDrag}
         onNodeDragStop={onNodeDragStop}
         onNodeDoubleClick={handleNodeDoubleClick}
         onNodeClick={handleNodeClick}
@@ -260,7 +305,7 @@ function CanvasInner() {
         }}
         className="absolute left-4 top-4 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-gray-900 text-white shadow-xl ring-1 ring-black/10 transition-colors hover:bg-gray-700"
       >
-        <i className={faClasses("far fa-plus")} aria-hidden="true" />
+        <UiIcon name="plus" className="text-base" />
       </button>
       <CanvasToolbar />
       <BlocksPalette />

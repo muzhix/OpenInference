@@ -7,6 +7,7 @@
  * each edge's `data`.
  */
 
+import { MarkerType } from "@xyflow/react";
 import type { Edge, Node } from "@xyflow/react";
 
 import { blockSectionOf } from "./category";
@@ -30,6 +31,8 @@ export type StepNodeData = {
   selectorProps: string[];
   /** Known output names (registry manifest, else outputs referenced elsewhere in the spec). */
   outputNames: string[];
+  /** Registry outputs manifest entries for the selected-state side tray. */
+  outputEntries: { name: string }[];
   /** Cloud section id (CLOUD_BLOCKS) driving the accent color. */
   section: string;
   disabled: boolean;
@@ -62,8 +65,10 @@ export interface DerivedGraph {
   edges: AppEdge[];
 }
 
-const DEFAULT_EDGE_STYLE = { stroke: "#9CA3AF", strokeWidth: 1.5 };
-const DANGLING_EDGE_STYLE = { stroke: "#DC2626", strokeDasharray: "6 3", strokeWidth: 1.5 };
+/** Official builder edges: 1px gray line with a closed gray arrowhead. */
+const DEFAULT_EDGE_STYLE = { stroke: "#B1B1B7", strokeWidth: 1 };
+const DANGLING_EDGE_STYLE = { stroke: "#DC2626", strokeDasharray: "6 3", strokeWidth: 1 };
+const EDGE_MARKER_END = { type: MarkerType.ArrowClosed, width: 14, height: 14, color: "#6B7280" };
 
 export function specToGraph(spec: WorkflowSpecification, registry?: BlockRegistry | null): DerivedGraph {
   const storedPositions = spec.metadata?.ui?.nodes ?? {};
@@ -95,7 +100,8 @@ export function specToGraph(spec: WorkflowSpecification, registry?: BlockRegistr
     },
     ...entries.map(({ name, step }): AppNode => {
       const block = blocksByStep.get(step.type) ?? null;
-      const registryOutputs = (block?.outputs_manifest ?? []).map((output) => output.name);
+      const manifestOutputs = block?.outputs_manifest ?? [];
+      const registryOutputs = manifestOutputs.map((output) => output.name);
       const outputNames = registryOutputs.length > 0 ? registryOutputs : (referencedOutputs.get(name) ?? []);
       const selectorProps = selectorPropertiesForBlock(registry, step.type);
       const boundSelectors = Object.entries(step)
@@ -117,6 +123,7 @@ export function specToGraph(spec: WorkflowSpecification, registry?: BlockRegistr
           block,
           selectorProps: [...new Set([...selectorProps, ...boundSelectors])].sort(),
           outputNames,
+          outputEntries: manifestOutputs.map((output) => ({ name: output.name })),
           section: blockSectionOf(step.type),
           disabled: disabledKeys.has(`$steps.${name}`),
           hasDanglingRef: danglingByConsumer.has(`$steps.${name}`),
@@ -151,6 +158,7 @@ export function specToGraph(spec: WorkflowSpecification, registry?: BlockRegistr
     targetHandle: TARGET_HANDLE_ID,
     data: { sourceOutput: edge.sourceOutput, targetInput: edge.targetInput },
     style: isEdgeToUnknownOutput(edge, entries, blocksByStep) ? DANGLING_EDGE_STYLE : DEFAULT_EDGE_STYLE,
+      markerEnd: EDGE_MARKER_END,
   }));
 
   return { nodes, edges };

@@ -10,6 +10,10 @@
 export interface WorkflowInputSpec {
   type: string;
   name: string;
+  /** WorkflowParameter only: value kind annotation (engine accepts ["string", ...]). */
+  kind?: string[];
+  /** WorkflowParameter only: default value (str / number / boolean / object). */
+  default_value?: unknown;
 }
 
 export interface WorkflowOutputSpec {

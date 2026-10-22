@@ -16,7 +16,10 @@ test.describe("Workflow editor canvas", () => {
     await expect(stepNode).toHaveClass(/selected/);
 
     await stepNode.dblclick();
+    // Official flow: rename lives in the action bar above the expanded node.
+    await stepNode.getByRole("button", { name: "Rename" }).click();
     await expect(stepNode.getByLabel("Step name")).toBeVisible();
+    await stepNode.getByLabel("Step name").blur();
     // Cloud visibility rule: only the required selector row shows by default…
     await expect(stepNode.getByText("Input Image")).toBeVisible();
     // …optional fields wait behind the collapsed additional-properties toggle.
@@ -74,6 +77,48 @@ test.describe("Workflow editor canvas", () => {
 
     await page.reload();
     await expect(page.locator(".react-flow__node")).toHaveCount(4);
+  });
+
+  test("Add Input inline form creates a Parameter input persisted with kind and default", async ({ page, request }) => {
+    await seedDemoWorkflow(request, "editor-add-parameter");
+    await gotoEditor(page, "editor-add-parameter");
+
+    const inputsCard = page.locator(".workflow-input-node");
+    await inputsCard.click({ position: { x: 140, y: 16 } });
+    await inputsCard.getByRole("button", { name: "Add input" }).click();
+
+    // Add stays disabled until a name and a type are chosen (type starts unset).
+    const addButton = inputsCard.getByRole("button", { name: "Add", exact: true });
+    await expect(addButton).toBeDisabled();
+    await inputsCard.getByLabel("New input name").fill("confidence");
+    await inputsCard.getByRole("button", { name: "Select input type" }).click();
+    await inputsCard.getByRole("button", { name: "Parameter", exact: true }).click();
+
+    // Parameter reveals the Default value section: kind select + optional value.
+    await inputsCard.getByRole("button", { name: "Select default value type" }).click();
+    await inputsCard.getByRole("button", { name: "number", exact: true }).click();
+    await inputsCard.getByLabel("Default value", { exact: true }).fill("0.5");
+    await addButton.click();
+
+    await expect(inputsCard.getByTitle("WorkflowParameter")).toBeVisible();
+
+    // Saving persists type/kind/default_value into the stored specification.
+    const saveButton = page.getByRole("button", { name: "Save workflow draft" });
+    await expect(saveButton).not.toHaveAttribute("aria-disabled", "true");
+    await saveButton.click();
+    await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+
+    const specResponse = await request.get("/api/wf/spec?url=editor-add-parameter");
+    expect(specResponse.status()).toBe(200);
+    const body = (await specResponse.json()) as {
+      workflowSpec?: {
+        config?: {
+          inputs?: { type: string; name: string; kind?: string[]; default_value?: number }[];
+        };
+      };
+    };
+    const added = (body.workflowSpec?.config?.inputs ?? []).find((input) => input.name === "confidence");
+    expect(added).toMatchObject({ type: "WorkflowParameter", kind: ["number"], default_value: 0.5 });
   });
 
   test("Backspace and Delete remove selected steps; dangling output blocks saving", async ({ page, request }) => {

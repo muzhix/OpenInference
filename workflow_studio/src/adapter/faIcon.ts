@@ -14,6 +14,8 @@ const FALLBACK_ICON = "fa-solid fa-cube";
 const GLYPH_SUBSTITUTES: Record<string, string> = {
   analytics: "chart-line",
   aperture: "camera-retro",
+  "arrow-down-from-line": "arrow-down-long",
+  "arrow-down-to-line": "down-long",
   "arrow-progress": "arrow-trend-up",
   "bell-exclamation": "bell",
   "brackets-curly": "code",
@@ -54,13 +56,17 @@ const GLYPH_SUBSTITUTES: Record<string, string> = {
   webhook: "link",
 };
 
+const STYLE_TOKENS = new Set(["fa-solid", "fa-regular", "fa-brands", "fa-light", "fa-duotone"]);
+
 export function faClasses(icon: string | null | undefined): string {
   if (!icon) {
     return FALLBACK_ICON;
   }
+  // Tailwind size/color utilities often ride along ("far fa-edit text-[10px]");
+  // only fa-* tokens carry meaning, so pick the last glyph token.
   const tokens = icon.trim().split(/\s+/).filter(Boolean);
-  const glyph = tokens[tokens.length - 1];
-  if (!glyph || !glyph.startsWith("fa-")) {
+  const glyph = [...tokens].reverse().find((token) => token.startsWith("fa-") && !STYLE_TOKENS.has(token));
+  if (!glyph) {
     return FALLBACK_ICON;
   }
   const name = glyph.slice("fa-".length);

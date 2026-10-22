@@ -16,6 +16,12 @@ import {
   setParam,
   toggleDisabled,
   updateNote,
+  addInput,
+  moveInput,
+  setInputDefault,
+  removeInput,
+  renameInput,
+  renameOutput,
 } from "./mutations";
 import { specToGraph } from "./specToGraph";
 import { SAMPLE_SPEC, buildTestRegistry, sampleSteps } from "./testUtils";
@@ -243,4 +249,86 @@ describe("immutability", () => {
     disconnectEdge(SAMPLE_SPEC, { id: "$inputs~image~$steps.detection~images" });
     expect(JSON.stringify(SAMPLE_SPEC)).toBe(snapshot);
   });
+
+describe("workflow input/output mutations", () => {
+  function specWithInput() {
+    return {
+      version: "1.0" as const,
+      inputs: [{ type: "WorkflowImage", name: "image" }],
+      steps: [
+        {
+          type: "roboflow_core/brightness_contrast@v1",
+          name: "bc",
+          image: "$inputs.image",
+        },
+      ],
+      outputs: [{ type: "JsonField", name: "out", selector: "$steps.bc.image" }],
+    };
+  }
+
+  it("adds named inputs and de-duplicates colliding names", () => {
+    const next = addInput(addInput(specWithInput(), "confidence", "WorkflowParameter"), "confidence", "WorkflowParameter");
+    expect(next.inputs?.map((input) => input.name)).toEqual(["image", "confidence", "confidence_2"]);
+  });
+
+  it("parameter inputs carry the kind annotation and default value", () => {
+    const next = addInput(specWithInput(), "confidence", "WorkflowParameter", ["string"], "high");
+    expect(next.inputs?.[1]).toEqual({
+      type: "WorkflowParameter",
+      name: "confidence",
+      kind: ["string"],
+      default_value: "high",
+    });
+  });
+
+  it("moves an input to another index", () => {
+    const spec = addInput(specWithInput(), "confidence", "WorkflowParameter");
+    const next = moveInput(spec, "image", 1);
+    expect(next.inputs?.map((input) => input.name)).toEqual(["confidence", "image"]);
+    expect(moveInput(spec, "image", 0)).toBe(spec);
+  });
+
+  it("sets and clears a parameter default", () => {
+    const spec = addInput(specWithInput(), "confidence", "WorkflowParameter", ["number"], 0.5);
+    const cleared = setInputDefault(spec, "confidence", undefined);
+    expect(cleared.inputs?.[1]).toEqual({ type: "WorkflowParameter", name: "confidence" });
+    const updated = setInputDefault(spec, "confidence", false, ["boolean"]);
+    expect(updated.inputs?.[1]).toEqual({
+      type: "WorkflowParameter",
+      name: "confidence",
+      kind: ["boolean"],
+      default_value: false,
+    });
+  });
+
+  it("image inputs omit kind and default value", () => {
+    const next = addInput(specWithInput(), "second_image", "WorkflowImage");
+    expect(next.inputs?.[1]).toEqual({ type: "WorkflowImage", name: "second_image" });
+  });
+
+  it("removing an input leaves references dangling for the validator", () => {
+    const next = removeInput(specWithInput(), "image");
+    expect(next.inputs).toEqual([]);
+    expect(stepsToList(next.steps)[0]!.step).toMatchObject({ image: "$inputs.image" });
+  });
+
+  it("renaming an input rewrites $inputs references in steps and outputs", () => {
+    const next = renameInput(specWithInput(), "image", "photo");
+    expect(next.inputs?.[0]).toEqual({ type: "WorkflowImage", name: "photo" });
+    expect(stepsToList(next.steps)[0]!.step).toMatchObject({ image: "$inputs.photo" });
+  });
+
+  it("renaming an output only renames the row", () => {
+    const next = renameOutput(specWithInput(), "out", "result");
+    expect(next.outputs?.[0]).toEqual({ type: "JsonField", name: "result", selector: "$steps.bc.image" });
+  });
+
+  it("rename guards reject empty and colliding names", () => {
+    const spec = specWithInput();
+    expect(renameInput(spec, "image", " image ")).toBe(spec);
+    expect(renameInput(spec, "image", "")).toBe(spec);
+    const two = { ...spec, inputs: [...spec.inputs, { type: "WorkflowData", name: "data" }] };
+    expect(renameInput(two, "image", "data")).toBe(two);
+  });
+});
 });

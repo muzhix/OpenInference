@@ -71,3 +71,4 @@ export const ClockIcon = () => (
 export const SearchIcon = () => (
   <Svg><circle cx="7" cy="7" r="4.5" /><path d="M14 14l-3.2-3.2" /></Svg>
 );
+

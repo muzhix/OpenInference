@@ -13,6 +13,7 @@ import { blockDisplayName, buildPaletteSections, faClasses, sectionMetaOf } from
 import type { PaletteSection } from "../../adapter";
 import { useEditorStore } from "../../state/editorStore";
 import { useRegistryStore } from "../../state/registryStore";
+import { UiIcon } from "./hollowIcons";
 import type { BlockDescriptor } from "../../types/registry";
 
 type PaletteView = { kind: "categories" } | { kind: "section"; section: string } | { kind: "all" };
@@ -69,7 +70,7 @@ export function BlocksPalette() {
           onClick={closePalette}
           className="flex h-8 w-8 items-center justify-center rounded-full text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700"
         >
-          <i className={`${faClasses("far fa-times")} text-sm`} aria-hidden="true" />
+          <UiIcon name="x" className="text-sm" />
         </button>
       </div>
       <div className="px-4 pb-2">
@@ -160,7 +161,7 @@ function CategoryRow({ section, onSelect }: { section: string; onSelect: () => v
         <span className="block truncate text-sm font-medium text-gray-800">{meta.label}</span>
         <span className="block truncate text-xs text-gray-500">{meta.description}</span>
       </span>
-      <i className={`${faClasses("far fa-chevron-right")} shrink-0 text-xs text-gray-400`} aria-hidden="true" />
+      <UiIcon name="chevron-right" className="shrink-0 text-sm text-gray-400" />
     </button>
   );
 }

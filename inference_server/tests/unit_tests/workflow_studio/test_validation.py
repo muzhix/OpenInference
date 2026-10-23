@@ -213,6 +213,68 @@ def test_unknown_step_output_is_a_warning():
     ]
 
 
+def test_all_properties_workflow_output_is_the_whole_step_object():
+    config = {
+        "specification": {
+            "version": "1.0",
+            "inputs": [{"type": "WorkflowImage", "name": "image"}],
+            "steps": [
+                {
+                    "type": "test/blur@v1",
+                    "name": "blur",
+                    "image": "$inputs.image",
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "JsonField",
+                    "name": "out",
+                    "selector": "$steps.blur.all_properties",
+                },
+                {
+                    "type": "JsonField",
+                    "name": "out_star",
+                    "selector": "$steps.blur.*",
+                },
+            ],
+        }
+    }
+
+    result = _validate(config)
+
+    assert result["errors"] == []
+    assert result["warnings"] == []
+
+
+def test_all_properties_on_a_step_input_is_still_an_unknown_output():
+    config = {
+        "specification": {
+            "version": "1.0",
+            "inputs": [{"type": "WorkflowImage", "name": "image"}],
+            "steps": [
+                {
+                    "type": "test/blur@v1",
+                    "name": "blur",
+                    "image": "$inputs.image",
+                },
+                {
+                    "type": "test/sink@v1",
+                    "name": "sink",
+                    "input": "$steps.blur.all_properties",
+                },
+            ],
+            "outputs": [],
+        }
+    }
+
+    result = _validate(config)
+
+    assert result["errors"] == []
+    assert [warning["code"] for warning in result["warnings"]] == [
+        "unknown_step_output"
+    ]
+
+
 def test_kind_mismatch_is_a_warning_when_both_sides_are_known():
     config = {
         "specification": {

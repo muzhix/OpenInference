@@ -10,7 +10,7 @@ import { create } from "zustand";
 import {
   addInput,
   addNote,
-  addOutput,
+  addBoundOutput,
   addStep,
   applyNodePositions,
   computeAutoLayout,
@@ -107,7 +107,7 @@ interface EditorState {
   renameStepNode: (oldName: string, newName: string) => void;
   setStepParam: (stepName: string, property: string, value: unknown) => void;
   setOutputBinding: (name: string, selector: string) => void;
-  addWorkflowOutput: () => void;
+  addWorkflowOutput: (name: string, selector: string) => void;
   removeWorkflowOutput: (name: string) => void;
   addWorkflowInput: (name: string, type: string, kind?: string[], defaultValue?: unknown) => void;
   removeWorkflowInput: (name: string) => void;
@@ -290,6 +290,7 @@ export const useEditorStore = create<EditorState>()((set, get) => ({
         loadStatus: "ready",
         ...validationOf(spec),
       });
+      scheduleServerValidation();
     } catch (cause) {
       set({
         loadStatus: "error",
@@ -432,8 +433,8 @@ export const useEditorStore = create<EditorState>()((set, get) => ({
     get().mutate((spec) => setOutputSelector(spec, name, selector));
   },
 
-  addWorkflowOutput: () => {
-    get().mutate((spec) => addOutput(spec));
+  addWorkflowOutput: (name, selector) => {
+    get().mutate((spec) => addBoundOutput(spec, name, selector));
   },
 
   removeWorkflowOutput: (name) => {

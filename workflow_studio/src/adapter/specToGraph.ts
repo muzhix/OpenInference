@@ -182,7 +182,8 @@ export function specToGraph(spec: WorkflowSpecification, registry?: BlockRegistr
     return false;
   }
   const names = outputs.map((output) => output.name);
-  return !names.includes(edge.sourceOutput) && !edge.sourceOutput.startsWith("all_properties");
+  const bindsEveryProperty = edge.sourceOutput === "*" || edge.sourceOutput.startsWith("all_properties");
+  return !names.includes(edge.sourceOutput) && !bindsEveryProperty;
 }
 
 /** Output names referenced anywhere in the spec, per step name (registry-less fallback). */

@@ -16,7 +16,20 @@ export interface ParsedSelector {
   sourceNodeId: string;
 }
 
-const SELECTOR_PREFIX_RE = /^\$(inputs|steps)\.([A-Za-z0-9_]+)(?:\.([A-Za-z0-9_]+))?/;
+const SELECTOR_PREFIX_RE = /^\$(inputs|steps)\.([A-Za-z0-9_]+)(?:\.([A-Za-z0-9_]+|\*))?/;
+
+/**
+ * `$steps.<name>.all_properties` and `$steps.<name>.*` are one binding: every
+ * property of that step, returned as a single JSON object. The engine reads
+ * the `.*` form.
+ */
+export function canonicalOutputSelector(selector: string): string {
+  const suffix = ".all_properties";
+  if (selector.endsWith(suffix)) {
+    return `${selector.slice(0, -suffix.length)}.*`;
+  }
+  return selector;
+}
 
 /** Validate selector syntax (prefix match allows UQL suffixes like `[:1]`). */
 export function isValidSelectorSyntax(value: string): boolean {

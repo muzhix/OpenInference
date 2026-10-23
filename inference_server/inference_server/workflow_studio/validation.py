@@ -2,7 +2,10 @@
 
 Mirrors the Roboflow cloud editor semantics: dangling references and
 duplicated names block saving, while unknown blocks, unknown step outputs and
-kind mismatches are advisory warnings only. Selector syntax is checked
+kind mismatches are advisory warnings only. A workflow output selector of
+``$steps.<name>.*`` (or the editor token ``all_properties``) binds every
+property of that step as one JSON object, so it is not an undeclared output.
+Selector syntax is checked
 leniently — UQL suffixes such as ``$steps.a.predictions[0]`` are accepted.
 """
 
@@ -16,7 +19,7 @@ from pydantic import BaseModel, Field
 from inference_server.workflow_studio.spec_models import WorkflowSpecification
 
 INPUT_SELECTOR_PATTERN = re.compile(r"^\$inputs\.([A-Za-z0-9_]+)")
-STEP_SELECTOR_PATTERN = re.compile(r"^\$steps\.([A-Za-z0-9_]+)\.([A-Za-z0-9_]+)")
+STEP_SELECTOR_PATTERN = re.compile(r"^\$steps\.([A-Za-z0-9_]+)\.([A-Za-z0-9_]+|\*)")
 
 _SELECTOR_PREFIXES = ("$inputs.", "$steps.")
 
@@ -211,6 +214,20 @@ def _registry_index(
     return block_outputs, accepted_kinds
 
 
+def _is_all_properties_workflow_output(
+    *, output_name: str, target_block_type: Optional[str]
+) -> bool:
+    """True when a workflow output binds every property of a step.
+
+    The stored selector is ``$steps.<name>.*``. Older drafts still say
+    ``all_properties``. Neither name is a declared block output; the engine
+    returns one JSON object of every property the step produced.
+    """
+    is_workflow_output = target_block_type is None
+
+    return is_workflow_output and output_name in {"all_properties", "*"}
+
+
 def _kind_names(*, output: Dict[str, Any]) -> List[str]:
     kinds = output.get("kind") or []
 
@@ -265,6 +282,11 @@ def _check_reference(
     source_kinds: Optional[List[str]] = None
     block_type = step_types[step_name]
     outputs = block_outputs.get(block_type)
+    if _is_all_properties_workflow_output(
+        output_name=output_name, target_block_type=target_block_type
+    ):
+        return
+
     if outputs is not None:
         if output_name not in outputs:
             warnings.append(

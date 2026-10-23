@@ -8,12 +8,17 @@ failures surface as a single ``execution_error`` payload.
 
 from __future__ import annotations
 
+import re
 from typing import Any, Dict, Optional
 
 from fastapi import Request
 from starlette.concurrency import run_in_threadpool
 
 from inference_server.workflow_studio.spec_models import normalize_steps_collection
+
+# Editor token for "every property of this step, as one JSON object".
+# The engine selector for that value is ``$steps.<name>.*``.
+_ALL_PROPERTIES_OUTPUT = re.compile(r"^(\$steps\.[A-Za-z0-9_]+)\.all_properties$")
 
 # Frontend-only keys that the execution engine must never see.
 _FRONTEND_ONLY_IMAGE_KEYS = ("validUrl",)
@@ -25,8 +30,11 @@ def prepare_specification(specification: Dict[str, Any]) -> Dict[str, Any]:
     """Normalize a specification for the execution engine.
 
     Unwraps a cloud-style ``{"specification": {...}}`` wrapper, converts
-    name-keyed ``steps`` dictionaries into the canonical list form and strips
-    editor-only ``metadata``.
+    name-keyed ``steps`` dictionaries into the canonical list form, strips
+    editor-only ``metadata``, and rewrites a workflow output bound to
+    ``$steps.<name>.all_properties`` into ``$steps.<name>.*``. The engine
+    resolves that selector to one JSON object of every property the step
+    produced.
 
     Args:
         specification: Specification mapping as sent by the editor.
@@ -43,6 +51,36 @@ def prepare_specification(specification: Dict[str, Any]) -> Dict[str, Any]:
 
     spec = normalize_steps_collection(spec_dict=spec)
     spec.pop("metadata", None)
+    prepared = _rewrite_all_properties_outputs(spec=spec)
+
+    return prepared
+
+
+def _rewrite_all_properties_outputs(*, spec: Dict[str, Any]) -> Dict[str, Any]:
+    """Point all-properties workflow outputs at the engine wildcard selector."""
+    outputs = spec.get("outputs")
+    if not isinstance(outputs, list):
+        return spec
+
+    rewritten_outputs = []
+    for output in outputs:
+        if not isinstance(output, dict):
+            rewritten_outputs.append(output)
+            continue
+
+        selector = output.get("selector")
+        if not isinstance(selector, str):
+            rewritten_outputs.append(output)
+            continue
+
+        match = _ALL_PROPERTIES_OUTPUT.match(selector)
+        if match is None:
+            rewritten_outputs.append(output)
+            continue
+
+        rewritten_outputs.append({**output, "selector": f"{match.group(1)}.*"})
+
+    spec["outputs"] = rewritten_outputs
 
     return spec
 

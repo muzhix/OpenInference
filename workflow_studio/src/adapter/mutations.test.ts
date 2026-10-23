@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import {
   addNote,
+  addBoundOutput,
   addOutput,
+  nextOutputName,
   addStep,
   connectNodes,
   disconnectEdge,
@@ -139,6 +141,30 @@ describe("param and output mutations", () => {
     const removed = removeOutput(withSelector, "output");
     expect(removed.outputs?.find((output) => output.name === "output")).toBeUndefined();
   });
+
+  it("addBoundOutput names a blank row from the selector and suffixes the next one _2", () => {
+    const added = addBoundOutput(SAMPLE_SPEC, "", "$steps.detection.predictions");
+    expect(added.outputs?.at(-1)).toMatchObject({
+      name: "detection_output",
+      selector: "$steps.detection.predictions",
+    });
+    const second = addBoundOutput(added, "detection_output", "$steps.detection.inference_id");
+    expect(second.outputs?.at(-1)).toMatchObject({
+      name: "detection_output_2",
+      selector: "$steps.detection.inference_id",
+    });
+    expect(nextOutputName(["detection_output", "detection_output_2"], "detection")).toBe("detection_output_3");
+  });
+
+  it("stores all_properties as the engine wildcard so the output is one JSON object", () => {
+    const added = addBoundOutput(SAMPLE_SPEC, "detection_object", "$steps.detection.all_properties");
+    expect(added.outputs?.at(-1)).toMatchObject({
+      name: "detection_object",
+      selector: "$steps.detection.*",
+    });
+    const rebound = setOutputSelector(added, "output_image", "$steps.detection.all_properties");
+    expect(rebound.outputs?.find((output) => output.name === "output_image")?.selector).toBe("$steps.detection.*");
+  });
 });
 
 describe("notes and disabled", () => {
@@ -171,6 +197,17 @@ describe("connectNodes (edge drag -> binding)", () => {
     const next = connectNodes(spec, "$inputs", "$steps.classifier", registry);
     const classifier = stepsToList(next.steps).find((entry) => entry.name === "classifier");
     expect(classifier?.step.image).toBe("$inputs.image");
+  });
+
+  it("appends a second outputs-node binding as <step>_output_2", () => {
+    const once = connectNodes(SAMPLE_SPEC, "$steps.detection", "$outputs", registry);
+    const twice = connectNodes(once, "$steps.detection", "$outputs", registry);
+    expect(twice.outputs?.map((output) => output.name)).toEqual([
+      "output_image",
+      "detection_count",
+      "detection_output",
+      "detection_output_2",
+    ]);
   });
 
   it("uses the source step's first manifest output as the bound selector", () => {

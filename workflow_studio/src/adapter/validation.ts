@@ -126,7 +126,7 @@ export function localValidate(spec: WorkflowSpecification, registry?: BlockRegis
 }
 
 function knownReferenceOutput(names: string[], outputName: string): boolean {
-  return names.includes(outputName) || outputName.startsWith("all_properties");
+  return names.includes(outputName) || outputName === "*" || outputName.startsWith("all_properties");
 }
 
 /**

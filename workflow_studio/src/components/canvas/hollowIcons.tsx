@@ -28,6 +28,7 @@ import {
   CircleHelp,
   Database,
   Expand,
+  IdCard,
   Image as ImageIcon,
   Info,
   Lock,
@@ -82,6 +83,7 @@ const ICONS: Record<string, LucideIcon> = {
   "arrow-down-from-line": ArrowDownFromLine,
   "arrow-up-from-line": ArrowUpFromLine,
   image: ImageIcon,
+  "id-card": IdCard,
   video: VideoIcon,
   database: Database,
   search: Search,
@@ -98,6 +100,24 @@ const ICONS: Record<string, LucideIcon> = {
 export type HollowIconName = keyof typeof ICONS;
 
 /** Map workflow input types to lucide icon names. */
+/** Kind-aware chip icon: inference id, model id, image, otherwise a generic box. */
+export function outputFieldIconName(outputName: string, kindName?: string): string {
+  const blob = `${kindName ?? ""} ${outputName}`.toLowerCase();
+  if (blob.includes("inference_id")) {
+    return "id-card";
+  }
+  if (outputName === "all_properties" || blob.includes("model_id")) {
+    return "sitemap";
+  }
+  if (outputName === "image" || kindName === "image") {
+    return "image";
+  }
+  if (outputName === "*") {
+    return "asterisk";
+  }
+  return "box";
+}
+
 export function inputTypeIconName(type: string): string {
   if (type === "WorkflowVideoMetadata" || type === "WorkflowVideo" || type === "InferenceVideo") {
     return "video";

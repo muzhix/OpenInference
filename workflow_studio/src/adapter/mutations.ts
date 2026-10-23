@@ -12,7 +12,13 @@ import {
   imageInputPropertyForBlock,
   selectorPropertiesForBlock,
 } from "./registryUtils";
-import { rewriteStepReferences, rewriteInputReferences, parseSelector, collectSelectorStrings } from "./selectors";
+import {
+  rewriteStepReferences,
+  rewriteInputReferences,
+  parseSelector,
+  collectSelectorStrings,
+  canonicalOutputSelector,
+} from "./selectors";
 
 import type { BlockDescriptor, BlockRegistry } from "../types/registry";
 import type { UiNote, UiPosition, WorkflowInputSpec, WorkflowSpecification, WorkflowStepSpec } from "../types/spec";
@@ -363,7 +369,7 @@ export function connectNodes(
       sourceNodeKey === "$inputs"
         ? (spec.inputs ?? []).find((input) => `$inputs.${input.name}` === source.selector)?.name ?? "input"
         : sourceNodeKey.slice("$steps.".length);
-    const name = uniqueName((spec.outputs ?? []).map((output) => output.name), `${baseName}_output`);
+    const name = nextOutputName((spec.outputs ?? []).map((output) => output.name), baseName);
     return withOutputs(spec, [...(spec.outputs ?? []), { type: "JsonField", name, selector: source.selector }]);
   }
 
@@ -565,6 +571,41 @@ export function renameInput(spec: WorkflowSpecification, oldName: string, newNam
   return { ...spec, inputs, steps, outputs };
 }
 
+/** `{base}_output`, then `{base}_output_2`, `{base}_output_3`, matching the builder. */
+export function nextOutputName(existing: Iterable<string>, base: string): string {
+  const taken = new Set(existing);
+  const root = `${base}_output`;
+  if (!taken.has(root)) {
+    return root;
+  }
+  let counter = 2;
+  while (taken.has(`${root}_${counter}`)) {
+    counter += 1;
+  }
+  return `${root}_${counter}`;
+}
+
+/** Step or input name a selector addresses, used as the output-name stem. */
+export function outputBaseName(selector: string): string {
+  const parsed = parseSelector(selector);
+  if (parsed?.scope === "inputs" && parsed.inputName) {
+    return parsed.inputName;
+  }
+  if (parsed?.scope === "steps" && parsed.stepName) {
+    return parsed.stepName;
+  }
+  return "output";
+}
+
+/** Append a JsonField row. A blank or taken name falls back to `nextOutputName`. */
+export function addBoundOutput(spec: WorkflowSpecification, name: string, selector: string): WorkflowSpecification {
+  const boundSelector = canonicalOutputSelector(selector);
+  const existing = (spec.outputs ?? []).map((output) => output.name);
+  const trimmed = name.trim();
+  const finalName = trimmed && !existing.includes(trimmed) ? trimmed : nextOutputName(existing, outputBaseName(boundSelector));
+  return withOutputs(spec, [...(spec.outputs ?? []), { type: "JsonField", name: finalName, selector: boundSelector }]);
+}
+
 /** Rename a workflow output row (output names are not selector targets). */
 export function renameOutput(spec: WorkflowSpecification, oldName: string, newName: string): WorkflowSpecification {
   const trimmed = newName.trim();
@@ -591,9 +632,10 @@ export function removeOutput(spec: WorkflowSpecification, name: string): Workflo
 }
 
 export function setOutputSelector(spec: WorkflowSpecification, name: string, selector: string): WorkflowSpecification {
+  const boundSelector = canonicalOutputSelector(selector);
   return withOutputs(
     spec,
-    (spec.outputs ?? []).map((output) => (output.name === name ? { ...output, selector } : output)),
+    (spec.outputs ?? []).map((output) => (output.name === name ? { ...output, selector: boundSelector } : output)),
   );
 }
 

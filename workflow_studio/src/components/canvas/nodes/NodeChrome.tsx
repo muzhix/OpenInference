@@ -5,8 +5,10 @@
  * top, the node's own outputs below), and small helpers.
  */
 
-import { blockSectionOf, blockShortName, faClasses, sectionMetaOf } from "../../../adapter";
-import { UiIcon, inputTypeIconName } from "../hollowIcons";
+import { useState } from "react";
+
+import { blockSectionOf, blockShortName, canonicalOutputSelector, faClasses, sectionMetaOf } from "../../../adapter";
+import { UiIcon, inputTypeIconName, outputFieldIconName } from "../hollowIcons";
 import { useEditorStore } from "../../../state/editorStore";
 import { useRegistryStore } from "../../../state/registryStore";
 import { stepsToList } from "../../../types/spec";
@@ -123,24 +125,32 @@ function TrayChip({
   label,
   icon,
   section,
+  disabled,
 }: {
   selector: string;
   label: string;
   icon: React.ReactNode;
   section?: string;
+  /** Already bound as a workflow output: visible, but not draggable. */
+  disabled?: boolean;
 }) {
   const meta = section ? sectionMetaOf(section) : null;
   return (
     <div
-      draggable
+      draggable={!disabled}
+      aria-disabled={disabled || undefined}
       data-input-ref={selector}
       onDragStart={(event) => {
+        if (disabled) {
+          event.preventDefault();
+          return;
+        }
         event.dataTransfer.setData(WF_SELECTOR_DRAG_TYPE, selector);
         event.dataTransfer.setData("text/plain", selector);
         event.dataTransfer.effectAllowed = "link";
       }}
-      className="nodrag nowheel max-w-full cursor-grab active:cursor-grabbing"
-      title={`Drag to a block field to connect (${selector})`}
+      className={`nodrag nowheel max-w-full ${disabled ? "pointer-events-none cursor-not-allowed opacity-40" : "cursor-grab active:cursor-grabbing"}`}
+      title={disabled ? `${label} is already a workflow output` : `Drag to a block field to connect (${selector})`}
     >
       <span
         className="inline-flex max-w-full items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium"
@@ -210,6 +220,7 @@ function TrayCard({
 export function NodeTrays({ nodeId, showProducers = true }: { nodeId: string; showProducers?: boolean }) {
   const spec = useEditorStore((state) => state.spec);
   const registry = useRegistryStore((state) => state.registry);
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   if (!spec) {
     return null;
   }
@@ -220,11 +231,16 @@ export function NodeTrays({ nodeId, showProducers = true }: { nodeId: string; sh
   const isOutputsNode = nodeId === "$outputs";
   const selfName = nodeId.startsWith("$steps.") ? nodeId.slice("$steps.".length) : null;
 
+  const chipFor = (name: string, kindName?: string): { name: string; icon: React.ReactNode } => ({
+    name,
+    icon: <UiIcon name={outputFieldIconName(name, kindName)} className="text-xs" />,
+  });
+
   const producers: { nodeId: string; label: string; icon: React.ReactNode; section?: string; outputs: { name: string; icon: React.ReactNode }[] }[] = [];
   producers.push({
     nodeId: "$inputs",
     label: "inputs",
-    icon: <UiIcon name={inputTypeIconName("WorkflowImage")} className="text-xs" />,
+    icon: <UiIcon name="arrow-down-to-line" className="text-xs" />,
     outputs: (spec.inputs ?? []).map((input) => ({ name: input.name, icon: <UiIcon name={inputTypeIconName(input.type)} className="text-xs" /> })),
   });
   for (const { name, step } of entries) {
@@ -232,9 +248,12 @@ export function NodeTrays({ nodeId, showProducers = true }: { nodeId: string; sh
       continue;
     }
     const block = blocksByType.get(step.type);
-    const outputs = (block?.outputs_manifest ?? []).map((output) => ({ name: output.name, icon: <UiIcon name="box" className="text-xs" /> }));
+    const named = [...(block?.outputs_manifest ?? [])].sort((a, b) => a.name.localeCompare(b.name));
+    const outputs = named.map((output) => chipFor(output.name, output.kind[0]?.name));
     if (outputs.length === 0) {
-      outputs.push({ name: "*", icon: <UiIcon name="asterisk" className="text-xs" /> });
+      outputs.push(chipFor("*"));
+    } else {
+      outputs.push(chipFor("all_properties"));
     }
     producers.push({
       nodeId: `$steps.${name}`,
@@ -250,12 +269,18 @@ export function NodeTrays({ nodeId, showProducers = true }: { nodeId: string; sh
       ? (() => {
           const step = entries.find((entry) => entry.name === selfName)?.step;
           const block = step ? blocksByType.get(step.type) : undefined;
-          return (block?.outputs_manifest ?? []).map((output) => ({ name: output.name, icon: <UiIcon name="box" className="text-xs" /> }));
+          return (block?.outputs_manifest ?? []).map((output) => chipFor(output.name, output.kind[0]?.name));
         })()
       : (spec.inputs ?? []).map((input) => ({ name: input.name, icon: <UiIcon name={inputTypeIconName(input.type)} className="text-xs" /> }));
 
   const selectorFor = (producerNodeId: string, outputName: string): string =>
     producerNodeId === "$inputs" ? `$inputs.${outputName}` : outputName === "*" ? `${producerNodeId}` : `${producerNodeId}.${outputName}`;
+
+  const boundOutputSelectors = new Set(
+    isOutputsNode
+      ? (spec.outputs ?? []).map((output) => canonicalOutputSelector(output.selector)).filter((selector) => selector.length > 0)
+      : [],
+  );
 
   const producerCount = producers.reduce((n, p) => n + p.outputs.length, 0);
 
@@ -270,26 +295,50 @@ export function NodeTrays({ nodeId, showProducers = true }: { nodeId: string; sh
           <div className="nodrag nowheel flex">
             <TrayCard title={`${producerCount} Input${producerCount === 1 ? "" : "s"}`} caption="Drag to block fields to connect">
               <div className="divide-y divide-gray-100">
-                {producers.map((producer) => (
-                  <div key={producer.nodeId} className="py-2 first:pt-0 last:pb-0">
-                    <div className="flex w-full items-center gap-2 py-1 text-left">
-                      <span className="flex w-4 justify-center text-gray-700">{producer.icon}</span>
-                      <span className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-xs font-medium text-gray-700">
-                        {producer.label}
-                      </span>
-                    </div>
-                    <div className="ml-5 mt-1 flex flex-wrap gap-1">
-                      {producer.outputs.map((output) => (
-                        <TrayChip
-                          key={output.name}
-                          selector={selectorFor(producer.nodeId, output.name)}
-                          label={output.name}
-                          icon={output.icon}
+                {producers.map((producer) => {
+                  const meta = producer.section ? sectionMetaOf(producer.section) : null;
+                  const isCollapsed = collapsed[producer.nodeId] === true;
+                  return (
+                    <div key={producer.nodeId} className="py-2 first:pt-0 last:pb-0">
+                      <button
+                        type="button"
+                        aria-expanded={!isCollapsed}
+                        onClick={() =>
+                          setCollapsed((current) => ({ ...current, [producer.nodeId]: !current[producer.nodeId] }))
+                        }
+                        className="nodrag flex w-full items-center gap-2 py-1 text-left"
+                      >
+                        <span
+                          className="flex w-4 justify-center text-gray-700"
+                          style={meta ? { color: meta.color } : undefined}
+                        >
+                          {producer.icon}
+                        </span>
+                        <span className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-xs font-medium text-gray-700">
+                          {producer.label}
+                        </span>
+                        <UiIcon
+                          name="chevron-down"
+                          className={`text-xs text-gray-400 transition-transform ${isCollapsed ? "-rotate-90" : ""}`}
                         />
-                      ))}
+                      </button>
+                      {isCollapsed ? null : (
+                        <div className="ml-5 mt-1 flex flex-wrap gap-1">
+                          {producer.outputs.map((output) => (
+                            <TrayChip
+                              key={output.name}
+                              selector={selectorFor(producer.nodeId, output.name)}
+                              label={output.name}
+                              icon={output.icon}
+                              section={producer.section}
+                              disabled={boundOutputSelectors.has(canonicalOutputSelector(selectorFor(producer.nodeId, output.name)))}
+                            />
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </TrayCard>
           </div>

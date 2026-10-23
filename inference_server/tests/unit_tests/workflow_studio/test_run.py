@@ -69,6 +69,39 @@ def test_prepare_specification_converts_name_keyed_steps_to_list():
     ]
 
 
+def test_prepare_specification_rewrites_all_properties_outputs():
+    specification = {
+        "version": "1.0",
+        "inputs": [],
+        "steps": [
+            {
+                "type": "test/sink@v1",
+                "name": "sink",
+                "input": "$steps.blur.all_properties",
+            }
+        ],
+        "outputs": [
+            {
+                "type": "JsonField",
+                "name": "out",
+                "selector": "$steps.blur.all_properties",
+            },
+            {
+                "type": "JsonField",
+                "name": "image",
+                "selector": "$steps.blur.image",
+            },
+        ],
+    }
+
+    prepared = prepare_specification(specification)
+
+    assert prepared["outputs"][0]["selector"] == "$steps.blur.*"
+    assert prepared["outputs"][1]["selector"] == "$steps.blur.image"
+    assert prepared["steps"][0]["input"] == "$steps.blur.all_properties"
+    assert specification["outputs"][0]["selector"] == "$steps.blur.all_properties"
+
+
 def test_normalize_run_inputs_strips_frontend_only_flags():
     inputs = {
         "image": {

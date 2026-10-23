@@ -10,7 +10,7 @@ import { useEffect, useState } from "react";
 import { fetchSpec, parseConfig } from "../../api/workflowApi";
 import { exportSpec } from "../../adapter";
 import { useEditorStore } from "../../state/editorStore";
-import { CloseIcon } from "../canvas/icons";
+import { UiIcon } from "../canvas/hollowIcons";
 import { IconButton } from "../ui/Button";
 
 const BASE64_PLACEHOLDER = "<BASE64_IMAGE>";
@@ -150,7 +150,7 @@ export function UseWorkflowModal({ onClose }: { onClose: () => void }) {
             ) : null}
           </div>
           <IconButton label="Close Use Workflow dialog" onClick={onClose}>
-            <CloseIcon />
+            <UiIcon name="x" className="text-base" />
           </IconButton>
         </header>
 

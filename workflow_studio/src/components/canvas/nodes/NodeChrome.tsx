@@ -14,6 +14,7 @@ import { useRegistryStore } from "../../../state/registryStore";
 import { stepsToList } from "../../../types/spec";
 
 import { WF_SELECTOR_DRAG_TYPE } from "../ConfigForm";
+import { sectionChipStyle } from "../sectionChip";
 
 export { inputTypeIconName as inputTypeIcon } from "../hollowIcons";
 
@@ -156,8 +157,8 @@ function TrayChip({
         className="inline-flex max-w-full items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium"
         style={
           meta
-            ? { backgroundColor: meta.tint, color: meta.color, borderColor: meta.tint }
-            : { backgroundColor: "#F9FAFB", color: "#374151", borderColor: "#E5E7EB" }
+            ? sectionChipStyle(meta.color)
+            : { backgroundColor: "#F3F4F6", color: "#4B5563", borderColor: "transparent" }
         }
       >
         {icon}
@@ -264,13 +265,14 @@ export function NodeTrays({ nodeId, showProducers = true }: { nodeId: string; sh
     });
   }
 
+  const selfStep = selfName !== null ? entries.find((entry) => entry.name === selfName)?.step : undefined;
+  const selfSection = selfStep ? blockSectionOf(selfStep.type) : null;
+  const selfMeta = selfSection ? sectionMetaOf(selfSection) : null;
   const selfOutputs: { name: string; icon: React.ReactNode }[] =
     selfName !== null
-      ? (() => {
-          const step = entries.find((entry) => entry.name === selfName)?.step;
-          const block = step ? blocksByType.get(step.type) : undefined;
-          return (block?.outputs_manifest ?? []).map((output) => chipFor(output.name, output.kind[0]?.name));
-        })()
+      ? (selfStep ? blocksByType.get(selfStep.type) : undefined)?.outputs_manifest.map((output) =>
+          chipFor(output.name, output.kind[0]?.name),
+        ) ?? []
       : (spec.inputs ?? []).map((input) => ({ name: input.name, icon: <UiIcon name={inputTypeIconName(input.type)} className="text-xs" /> }));
 
   const selectorFor = (producerNodeId: string, outputName: string): string =>
@@ -356,9 +358,10 @@ export function NodeTrays({ nodeId, showProducers = true }: { nodeId: string; sh
                 {selfOutputs.map((output) => (
                   <span
                     key={output.name}
-                    className={`inline-flex max-w-full items-center gap-1 rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-500 ${
-                      selfName === null ? "cursor-not-allowed" : ""
+                    className={`inline-flex max-w-full items-center gap-1 rounded-md px-2 py-1 text-xs font-medium ${
+                      selfName === null ? "cursor-not-allowed bg-gray-100 text-gray-500" : ""
                     }`}
+                    style={selfMeta ? sectionChipStyle(selfMeta.color) : undefined}
                     title={selfName !== null ? `$steps.${selfName}.${output.name}` : `$inputs.${output.name}`}
                   >
                     {output.icon}

@@ -10,8 +10,8 @@ import { blockShortName } from "../../adapter";
 import { stepsToList } from "../../types/spec";
 import { useEditorStore } from "../../state/editorStore";
 import { useRunStore } from "../../state/runStore";
+import { UiIcon } from "../canvas/hollowIcons";
 import { Button, IconButton } from "../ui/Button";
-import { ChevronIcon, GearIcon } from "./runIcons";
 import { formatFileSize, stripDataUrlPrefix } from "./runUtils";
 import type { RunImageInput } from "./runUtils";
 
@@ -353,7 +353,7 @@ function RunSettingsPopover() {
   return (
     <div className="relative">
       <IconButton label="Run Settings" title="Run Settings" onClick={() => setOpen(!open)}>
-        <GearIcon />
+        <UiIcon name="settings" className="text-base" />
       </IconButton>
       {open ? (
         <div className="absolute right-0 top-full z-20 mt-2 w-56 rounded-lg border border-gray-200 bg-white p-3 text-xs text-gray-600 shadow-xl">
@@ -379,7 +379,7 @@ function WorkflowOverview() {
       >
         Workflow structure
         <span className={`transition-transform ${open ? "rotate-180" : ""}`}>
-          <ChevronIcon />
+          <UiIcon name="chevron-down" className="text-base" />
         </span>
       </button>
       {open ? (

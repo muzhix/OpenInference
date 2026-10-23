@@ -5,6 +5,30 @@ import { Handle, Position } from "@xyflow/react";
 
 export const IO_ACCENT = "#E5E7EB";
 
+/**
+ * Single-line controls on Inputs, Outputs, and step nodes.
+ * 32px, 8px radius, gray-300 border, purple focus. Step accent is a 4px
+ * border-left; content sits 16px to the right of that bar (pl-4).
+ */
+export const FIELD_CONTROL =
+  "nodrag h-8 min-h-8 w-full rounded-lg border border-gray-300 bg-white px-2.5 text-xs text-gray-800 outline-none placeholder:text-gray-400 focus:border-purple-500 focus:outline-none";
+
+export const FIELD_MENU =
+  "nodrag flex h-8 min-h-8 w-full cursor-pointer items-center justify-between rounded-lg border border-gray-300 bg-white px-2.5 text-left text-xs font-medium text-gray-700 outline-none transition-colors hover:border-gray-400 hover:bg-gray-50";
+
+/**
+ * Full-width node actions. Select Image, Add Input, Add Output, and
+ * Show Additional Properties must share this class; do not restyle one of them.
+ */
+/**
+ * Hint copy on a block: field descriptions and validation lines.
+ * One size for all of them; only the color changes.
+ */
+export const FIELD_HINT = "text-[11px] leading-relaxed";
+
+export const FIELD_ACTION =
+  "nodrag flex h-8 min-h-8 w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-2.5 text-xs font-medium text-gray-700 outline-none transition-colors hover:border-gray-400 hover:bg-gray-50";
+
 export function NodeShell({
   accent,
   selected,

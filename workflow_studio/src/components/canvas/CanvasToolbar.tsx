@@ -123,7 +123,7 @@ export function CanvasToolbar() {
           className="w-4"
           onClick={() => setOptionsOpen((open) => !open)}
         >
-          <UiIcon name="chevron-up" className="text-[10px]" />
+          <UiIcon name="chevron-up" className="text-xs" />
         </ToolButton>
         {optionsOpen ? (
           <div className="absolute bottom-full left-0 mb-2 w-64 rounded-lg border border-gray-200 bg-white p-1 shadow-lg">

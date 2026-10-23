@@ -12,8 +12,8 @@
   `inline-flex cursor-grab gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs font-medium`
   + 类型图标(WorkflowImage→`far fa-image`,Video→`fa-video`,Data→`fa-database`)+ 名字 +
   hover 出现编辑(铅笔)/删除(×)小按钮(h-4 w-4)。
-- "Add Input" 按钮(官网实测):**h-11(≈44px) 整宽居中**,`flex items-center justify-center gap-2`、
-  lucide plus 在左 + "Add Input"(text-sm medium)、border-gray-200 实线白底、hover 浅灰底。
+- "Add Input" 按钮与 Select Image、Add Output、Show Additional Properties 共用 `FIELD_ACTION`
+  (见 README §3):`h-8`、`text-xs font-medium text-gray-700`、整宽居中、lucide plus `text-xs`。
 - 底部 1 个 20px source 手柄。
 - 打开时右侧**只有一个** "N Outputs" 托盘摘要卡(官网实测:Inputs 无生产者面板):
   头部标题(单数 "1 Output")+ 右上角空心 "?";chip = 浅灰 gray-100 填充、**无边框**、

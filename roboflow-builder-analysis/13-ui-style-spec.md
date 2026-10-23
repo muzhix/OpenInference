@@ -26,7 +26,8 @@
 | 次级文字 | #6B7280(gray-500) | 辅助说明 |
 
 **节点卡片(画布)**:
-- 白底;边框 1px #E5E7EB(上/右/下),**左侧为彩色 accent 竖条**(border-left 主题色、宽 ~20px 结构位、圆角 0 6 6px 0 的来源);阴影 `0 1px 3px rgba(0,0,0,.1), 0 1px 2px -1px rgba(0,0,0,.1)`;padding 12px;宽度类 `w-[280px]`。
+- 白底;边框 1px #E5E7EB(上/右/下),**左侧彩色 accent 为 4px border-left**(不要盖住内边距)。内容距色条 16px(`pl-4`),上/右/下 padding 12px;宽度类 `w-[280px]`。阴影 `0 1px 3px rgba(0,0,0,.1), 0 1px 2px -1px rgba(0,0,0,.1)`。
+- 节点内单行控件与 Inputs / Outputs 相同:高 32px、圆角 8px、边框 #D1D5DB、字号 12px、focus 边框 #6D28D9(`FIELD_CONTROL`)。
 - accent 分类色:模型=紫 #6D28D9、可视化=蓝 #2563EB、属性(Property/Expression)=橙 #EA580C、Inputs/Outputs=灰(无 accent,#E5E7EB)。
 - 标题 14px/500/#1F2937;副文本(实例名)12px/#6B7280。
 - 选中态:border/阴影强化(实测未捕获精确值,建议 #6D28D9 1.5px+同阴影)。

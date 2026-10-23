@@ -7,9 +7,8 @@
 
 import { useEditorStore } from "../../state/editorStore";
 import { useRunStore } from "../../state/runStore";
-import { CloseIcon } from "../canvas/icons";
+import { UiIcon } from "../canvas/hollowIcons";
 import { Button, IconButton } from "../ui/Button";
-import { ExpandIcon, FullscreenIcon } from "./runIcons";
 import { RunInputState } from "./RunInputState";
 import { RunResultsState } from "./RunResultsState";
 
@@ -30,10 +29,10 @@ export function RunPanel() {
           <h2 className="text-sm font-medium text-gray-900">Test Your Workflow</h2>
           <div className="flex items-center gap-1">
             <IconButton label="Expand run panel" disabled disabledReason="Full-width results view is not available in v1">
-              <ExpandIcon />
+              <UiIcon name="expand" className="text-base" />
             </IconButton>
             <IconButton label="Close run panel" onClick={toggleRunPanel}>
-              <CloseIcon />
+              <UiIcon name="x" className="text-base" />
             </IconButton>
           </div>
         </header>
@@ -53,13 +52,13 @@ export function RunPanel() {
             </Button>
             <div className="flex items-center gap-1">
               <IconButton label="Fullscreen results" disabled disabledReason="Fullscreen results are not available in v1">
-                <FullscreenIcon />
+                <UiIcon name="fullscreen" className="text-base" />
               </IconButton>
               <IconButton label="Expand run panel" disabled disabledReason="Full-width results view is not available in v1">
-                <ExpandIcon />
+                <UiIcon name="expand" className="text-base" />
               </IconButton>
               <IconButton label="Close run panel" onClick={toggleRunPanel}>
-                <CloseIcon />
+                <UiIcon name="x" className="text-base" />
               </IconButton>
             </div>
           </div>

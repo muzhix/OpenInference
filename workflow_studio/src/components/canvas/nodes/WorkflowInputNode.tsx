@@ -13,7 +13,7 @@ import { UiIcon, inputTypeIconName } from "../hollowIcons";
 import type { AppNode } from "../../../adapter";
 import { useEditorStore } from "../../../state/editorStore";
 import { NodeTrays } from "./NodeChrome";
-import { BottomSourceHandle } from "./shared";
+import { BottomSourceHandle, FIELD_ACTION, FIELD_CONTROL, FIELD_MENU } from "./shared";
 
 const HELP =
   "Define what data your workflow needs to run. For example, add an Image input if your workflow processes photos, or a Parameter input for settings like confidence thresholds. When you or others run this workflow, they'll provide these values.";
@@ -35,12 +35,8 @@ const PARAM_KINDS = [
 ] as const;
 type ParamKind = (typeof PARAM_KINDS)[number]["value"];
 
-const FIELD =
-  "nodrag w-full rounded border border-gray-300 px-2 py-1 text-xs text-gray-800 outline-none focus:border-purple-500";
-const MENU_BUTTON =
-  "flex h-7 w-full items-center justify-between rounded-lg border border-gray-300 bg-white px-2.5 text-xs font-medium text-gray-700";
-const TEXT_INPUT =
-  "h-[32px] min-h-[32px] w-full rounded-lg border border-gray-300 bg-white px-2.5 text-xs text-gray-800 outline-none placeholder:text-xs focus:border-purple-500";
+const FORM_ACTION =
+  "flex h-8 min-h-8 flex-1 items-center justify-center rounded-lg px-2.5 text-xs font-medium transition-colors";
 
 function parseDefaultValue(kind: ParamKind, raw: string): { ok: true; value?: unknown } | { ok: false; message: string } {
   if (!raw) {
@@ -352,7 +348,7 @@ export function WorkflowInputNode(props: NodeProps<AppNode>) {
                               closeEdit();
                             }
                           }}
-                          className={FIELD}
+                          className={FIELD_CONTROL}
                         />
                       </label>
                       {parameter ? (
@@ -423,7 +419,7 @@ export function WorkflowInputNode(props: NodeProps<AppNode>) {
                         }}
                         className="flex h-4 w-4 items-center justify-center rounded text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                       >
-                        <UiIcon name="edit" className="text-[10px]" />
+                        <UiIcon name="edit" className="text-xs" />
                       </button>
                       <button
                         type="button"
@@ -432,7 +428,7 @@ export function WorkflowInputNode(props: NodeProps<AppNode>) {
                         onClick={() => removeWorkflowInput(input.name)}
                         className="flex h-4 w-4 items-center justify-center rounded text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                       >
-                        <UiIcon name="x" className="text-[10px]" />
+                        <UiIcon name="x" className="text-xs" />
                       </button>
                     </div>
                   </div>
@@ -470,7 +466,7 @@ export function WorkflowInputNode(props: NodeProps<AppNode>) {
                         submit();
                       }
                     }}
-                    className={`${FIELD} ${nameError ? "border-red-500 focus:border-red-500" : ""}`}
+                    className={`${FIELD_CONTROL} ${nameError ? "border-red-500 focus:border-red-500" : ""}`}
                   />
                   {nameError ? <span className="break-words text-[10px] text-red-500">{nameError}</span> : null}
                 </label>
@@ -480,7 +476,7 @@ export function WorkflowInputNode(props: NodeProps<AppNode>) {
                     type="button"
                     aria-label="Select input type"
                     onClick={() => setMenu(menu === "type" ? null : "type")}
-                    className={MENU_BUTTON}
+                    className={FIELD_MENU}
                   >
                     <span>{TYPE_OPTIONS.find((option) => option.value === typeDraft)?.label ?? "Select type..."}</span>
                     <UiIcon name="chevron-down" className="text-xs text-gray-400 opacity-75" />
@@ -527,14 +523,14 @@ export function WorkflowInputNode(props: NodeProps<AppNode>) {
                   <button
                     type="button"
                     onClick={resetForm}
-                    className="flex h-[32px] min-h-[32px] flex-1 items-center justify-center rounded-lg border border-gray-300 px-2.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                    className={`${FORM_ACTION} border border-gray-300 text-gray-700 hover:bg-gray-50`}
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={!canAdd}
-                    className="flex h-[32px] min-h-[32px] flex-1 items-center justify-center rounded-lg bg-purple-600 px-2.5 text-xs font-medium text-white transition-colors hover:bg-purple-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+                    className={`${FORM_ACTION} bg-purple-600 text-white hover:bg-purple-700 disabled:cursor-not-allowed disabled:bg-gray-300`}
                   >
                     Add
                   </button>
@@ -546,9 +542,9 @@ export function WorkflowInputNode(props: NodeProps<AppNode>) {
               type="button"
               aria-label="Add input"
               onClick={() => setFormOpen(true)}
-              className="h-[32px] min-h-[32px] w-full rounded-lg border border-gray-300 bg-white px-2.5 text-xs font-medium text-gray-700 transition-colors hover:border-gray-400 hover:bg-gray-50"
+              className={FIELD_ACTION}
             >
-              <UiIcon name="plus" className="mr-1 inline-block text-xs" />
+              <UiIcon name="plus" className="text-xs" />
               <span>Add Input</span>
             </button>
           )}
@@ -583,7 +579,7 @@ function DefaultValueFields({
       <span className="text-xs font-medium text-gray-700">Default value</span>
       <div className="nodrag flex flex-col gap-2">
         <div className="relative">
-          <button type="button" aria-label="Select default value type" onClick={() => onToggle("kind")} className={MENU_BUTTON}>
+          <button type="button" aria-label="Select default value type" onClick={() => onToggle("kind")} className={FIELD_MENU}>
             <span>{kindLabel}</span>
             <UiIcon name="chevron-down" className="text-xs text-gray-400 opacity-75" />
           </button>
@@ -593,7 +589,7 @@ function DefaultValueFields({
         </div>
         {kind === "boolean" ? (
           <div className="relative">
-            <button type="button" aria-label="Default value" onClick={() => onToggle("bool")} className={MENU_BUTTON}>
+            <button type="button" aria-label="Default value" onClick={() => onToggle("bool")} className={FIELD_MENU}>
               <span>{raw || "Select..."}</span>
               <UiIcon name="chevron-down" className="text-xs text-gray-400 opacity-75" />
             </button>
@@ -624,7 +620,7 @@ function DefaultValueFields({
             placeholder="Enter default value (optional)"
             value={raw}
             onChange={(event) => onRaw(event.target.value)}
-            className={TEXT_INPUT}
+            className={FIELD_CONTROL}
           />
         )}
       </div>

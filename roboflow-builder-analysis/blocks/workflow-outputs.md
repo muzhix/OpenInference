@@ -14,7 +14,7 @@
   - 悬空 selector = 红 chip + 红 label(本地扩展,官网靠 Save 禁用表达)。
 - 空态:border-2 虚线框 "No Connected Blocks / Connect workflow blocks to this output block
   to define what your workflow returns."。
-- "Add Output" 按钮:`h-[38px] w-full rounded-lg border border-gray-300 text-sm` + `far fa-plus`。
+- "Add Output" 按钮与 Add Input、Select Image、Show Additional Properties 共用 `FIELD_ACTION`(见 README §3)。
 - 顶部 1 个 20px target 手柄。
 - 选中时右侧显示 "N Inputs · Drag to block fields to connect" 托盘:按生产节点分组
   (每组 = 节点图标 + 实例名 + 可拖输出 chips,step 组按分类 tint 着色)。

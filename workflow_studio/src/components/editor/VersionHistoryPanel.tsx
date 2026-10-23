@@ -10,7 +10,7 @@ import { useEffect, useRef, useState, type RefObject } from "react";
 import { fetchVersion, fetchVersions, parseConfig } from "../../api/workflowApi";
 import type { WorkflowVersionDetail, WorkflowVersionSummary } from "../../api/workflowApi";
 import { useEditorStore } from "../../state/editorStore";
-import { ClockIcon } from "../canvas/icons";
+import { UiIcon } from "../canvas/hollowIcons";
 import { formatRelativeTime } from "../ledger/helpers";
 import { IconButton } from "../ui/Button";
 
@@ -29,7 +29,7 @@ export function VersionHistoryPanel() {
         onClick={() => setOpen(!open)}
         className={open ? "bg-gray-100" : ""}
       >
-        <ClockIcon />
+        <UiIcon name="clock" className="text-base" />
       </IconButton>
       {open ? <VersionHistoryCard wrapperRef={wrapperRef} workflowUrl={workflowUrl} onClose={() => setOpen(false)} /> : null}
     </div>
@@ -114,9 +114,7 @@ function VersionHistoryCard({
           {title}
         </h2>
         <IconButton label="Close version history" onClick={onClose} className="shrink-0">
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-            <path d="M4 4l8 8M12 4l-8 8" strokeLinecap="round" />
-          </svg>
+          <UiIcon name="x" className="text-sm" />
         </IconButton>
       </header>
 

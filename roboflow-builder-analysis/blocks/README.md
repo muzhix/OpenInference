@@ -27,41 +27,70 @@
 
 ## 2. 卡片结构(step 节点)
 
+收起和展开共用同一套头部。分类色来自 `CLOUD_SECTIONS`(与 Workflow Blocks 面板一致)。
+
 ```
 stepNodeWrapper (relative flex w-[280px] overflow-visible)
-├─ 动作栏(选中/展开时,-top-12 居中悬浮白药丸,见 §4)
-├─ 侧托盘(选中时,右侧 translate-x-full,见 §5)
-├─ 左侧 accent:**收起 = 6px 分类色竖条;展开 = 宽浅色块(w-12 分类 tint,
-│   圆角左)+ 白底图标芯片坐在其上**(卡片内容右移让位)
-└─ graphBlock 卡片(白底 rounded-lg border border-l-0 p-3 shadow-sm hover:shadow-md)
-   ├─ 头部:tint 图标块(40px 附近,分类 tint 底 + 分类色字形)
-   │   · 小字 block 显示名(text-[11px] capitalize text-gray-500)
-   │   · 粗体实例名(text-sm font-medium text-gray-800)
-   │   · 右侧:校验错误按钮(pink-100 圆 + lucide triangle-alert pink-800,title=错误)
-   ├─ 表单(选中/双击展开,见 §3)
-   └─ 页脚:"Powered by [Inference](github) <github 图标>"(text-[10px] text-gray-500)
+├─ 动作栏(展开时,-top-12 居中悬浮白药丸,见 §4)
+├─ 侧托盘(展开时,右侧 translate-x-full,见 §5)
+├─ Additional Properties 面板(展开且按钮打开时,左侧独立白卡,见 §3)
+├─ 左侧 accent:4px border-left(分类色,收起、展开相同;不要用覆盖内边距的色条)
+└─ graphBlock 白卡(rounded-lg border bg-white py-3 pl-4 pr-3 shadow-sm)
+   内容距色条 16px。上/右/下内边距 12px。选中或展开时其余三边为分类色 2px。
+   ├─ 头部
+   │   · 40px 圆角图标芯片(分类色 22% 混白底 + 分类色字形,ui_manifest.icon)
+   │   · 小字 block 显示名(text-[11px] text-gray-500)
+   │   · 实例名(text-[15px] font-semibold text-gray-900)
+   │   · 右侧:校验错误(pink-100 圆 + triangle-alert,title=错误文案)
+   ├─ 表单(仅展开,见 §3)
+   └─ 页脚(仅当 ui_manifest 标了 inference / supervision)
 ```
 
-- 选中边框 = 分类色;禁用 = 整卡 opacity-0.5;悬空引用 = 红边框(我们的扩展)。
-- 展开时机:**单击选中即展示表单**,双击等效;Esc 收起。
+- 选中或展开时上/右/下边框 = 分类色 2px;未选中 = 1px `#E5E7EB`。左侧 accent 始终 4px 分类色。禁用 = 整卡 opacity 0.5。悬空引用 = 红边框。
+- 收起态不展示参数摘要,只保留头部(有运行缩略图时附在头部下方)。
+- 展开时机:单击节点体打开,再单击收起;按住拖动不改变打开状态。
+
+## 2.1 两种展开形态
+
+| 形态 | 判定 | 代表 |
+|---|---|---|
+| 属性面板 | schema 里有可选字段 | Object Detection Model、Bounding Box Visualization、Label Visualization |
+| 配置弹窗 | 字段名 `operations`(数组) | Detections Filter 的 Operations → Configure |
+
+属性面板是默认。`operations` 不进 JSON 文本框,改为灰底行 + Configure;同块的 `operations_parameters` 不单独露出,由弹窗写入。弹窗目前覆盖 Class & Confidence(Include / 置信度比较)。Exclude 会记住选择,但查询语言没有 not-in,语句仍是 `in (Sequence)`。
 
 ## 3. 表单字段行(通用)
 
+主表单只放 primary 字段。底部按钮 **Show Additional Properties**(面板在左侧,未打开时 chevron-left)。打开后按钮改为 Hide,图标改为 chevron-right,节点左侧出现独立白卡(宽 300px,标题 + 关闭 ×,内部滚动),optional 字段画在这张卡里,不塞进节点。
+
 ```
 [data-field-name=<property>]
-├─ 标签行:label(text-xs font-medium text-gray-600)+ 必填 * (text-pink-800)
-│   + 类型小图标(10px text-gray-400)+ "?"(title=描述)+ 描述(text-[11px] gray-500, line-clamp-1)
-├─ 控件(高 32px,圆角 6-8px,text-xs):
-│   · selector 值 = chip(border gray-200 bg-gray-50,显示去掉 $ 前缀,hover × 清除,拖放目标);
-│     **未绑定时 = "Select image/Select source" 按钮开来源选择弹层**
-│     (分组:$inputs 在前、各 step 输出按分类 tint 着色,点选即绑定)
-│   · model_id = 按钮触发 Select a Model 弹窗(空+必填时 border-pink-500 + 铅笔 pink + "Required input is missing")
-│   · enum = 下拉(chevron-down);number/text = 输入框
-└─ 可选字段收在底部 bordered "Show Additional Properties" 按钮(fa-chevron-left)后
+├─ 标签行:label(text-xs font-medium text-gray-600)+ 必填 * (text-pink-700)
+│   + 类型图标与 "?" 同为 Lucide `text-xs text-gray-400`(禁止自绘 svg,禁止混用字号)
+│   + 描述与校验提示共用 `FIELD_HINT`(`text-[11px] leading-relaxed`,问号 title 同文案)。
+│     禁止单独改其中一条的字号。说明 gray-500 line-clamp-1;错误(Required input is missing) pink-700。
+└─ 控件(与 Inputs / Outputs 同一套,见 `FIELD_CONTROL` / `FIELD_MENU`):
+    高 32px(`h-8`)、圆角 8px、边框 gray-300、text-xs、focus 边框 purple-500。
+    · 值以 $ 开头 = 来源色 chip(去掉 $steps./把 $inputs. 显示成 inputs.,× 清除)
+    · 未绑定的纯 selector = 居中「+ Select Image / Select Video / Select Source」。
+      下拉分组名与来源 chip 同为 `text-xs font-medium`。组名左侧是该 step 的图标(同字号):inputs 用 arrow-down-to-line,其它 step 用块图标。
+    · 整宽动作按钮共用 `FIELD_ACTION`(`nodes/shared.tsx`),禁止单独改其中一个:
+      Select Image、Add Input、Add Output、Show Additional Properties。
+      `h-8 min-h-8`、`text-xs font-medium text-gray-700`、`rounded-lg border-gray-300 bg-white`、
+      内容 `justify-center gap-1.5`、hover `border-gray-400` + `bg-gray-50`。加号同为 `text-xs`。
+      必填且未绑定时,按钮下的 "Required input is missing" 用 `FIELD_HINT`,不要另起字号。
+    · model_id = Select a Model(空且必填:border-pink-500 + 铅笔 + "Required input is missing")
+    · enum = 展示 values_metadata.name(如 Best (Recommended)),右侧 × 与 chevron
+    · boolean = 紫色开关(未写值时按 schema default 显示)
+    · number = 输入框(未写值时 default 作灰色 placeholder,不写入步骤;右侧上下箭头从该默认值加减)
+    · string[] = 逗号输入,placeholder 取 examples 里的第一个数组
 ```
 
-- 默认可见字段 = 必填 ∪ 值≠默认 ∪ 已设 selector。
-- 字段值可用侧托盘 chip **拖放到 selector chip / 虚线 drop-zone** 完成绑定。
+默认可见 = 必填 ∪ `always_visible` ∪ `relevant_for` 命中且 `required` ∪ 已绑定 `$` selector。可选字段改成字面量后仍留在 Additional Properties,不提升到节点。`relevant_for` 未命中的字段两边都不出现(例如 confidence_mode 不是 custom 时不显示 custom_confidence)。
+
+页脚:`ui_manifest.supervision` → Powered by Supervision;`ui_manifest.inference` → Powered by Inference。都链到对应 GitHub,带 `fa-github`。两个标记都没有则不画页脚。
+
+侧托盘里,上游 step 的 chip 和本节点 Outputs chip 用分类色 14% 混白,不再用统一灰底。`$inputs` 的 chip 保持灰。
 
 ## 4. 动作栏(展开节点上方)
 
@@ -73,9 +102,9 @@ stepNodeWrapper (relative flex w-[280px] overflow-visible)
 
 - 上卡:"N Inputs · Drag to block fields to connect"——按生产节点分组($inputs 在前,
   每组 = 节点图标 + 实例名 + 输出 chips;step 组的 chip 用其分类 tint 着色;chip 可拖拽)。
-- 下卡:"M Outputs"——本节点 outputs_manifest 的输出 chips(不可拖)。**面板头部右上角空心问号**
-  (与卡头的 "?" 同款);chip = **浅灰填充 gray-100、无边框、rounded-md**、类型图标 + 名字
-  ($inputs 的 chip 用输入类型图标,step 的用 box);面板阴影 shadow-sm(轻)。
+- 下卡:"M Outputs"——本节点 outputs_manifest 的输出 chips(不可拖)。头部右上角问号。
+  chip 用**本节点分类色 14% 混白、无边框、rounded-md**、类型图标 + 名字。
+  $inputs 节点的输出 chip 仍是浅灰。面板阴影 shadow-sm。
 - $outputs 节点只显示上卡;**$inputs 节点只显示下卡**(其输出 = 输入本身;官网实测 Inputs
   打开态右侧只有 "1 Output" 摘要面板,无生产者面板,垂直居中)。
 
@@ -105,8 +134,9 @@ stepNodeWrapper (relative flex w-[280px] overflow-visible)
 
 ## 8. 本地实现索引
 
-- 组件:`workflow_studio/src/components/canvas/nodes/`(WorkflowStepNode / WorkflowInputNode /
-  WorkflowOutputNode / NodeChrome / shared)、`ConfigForm.tsx`、`SelectModelModal.tsx`。
+- 组件:`workflow_studio/src/components/canvas/nodes/`(WorkflowStepNode / stepChrome /
+  WorkflowInputNode / WorkflowOutputNode / NodeChrome / shared)、`ConfigForm.tsx`、
+  `formFields.ts`、`fieldModel.ts`、`SelectModelModal.tsx`、`DetectionsFilterModal.tsx`。
 - 数据:`adapter/specToGraph.ts`(节点数据/边样式)、`adapter/category.ts`(分类色/tint)、
   `adapter/faIcon.ts`(FA 图标归一化)、`adapter/mutations.ts`(输入/输出增删改)。
 - 拖放:`WF_SELECTOR_DRAG_TYPE`(ConfigForm 导出)贯穿托盘 chip → 字段/输出 drop-zone。

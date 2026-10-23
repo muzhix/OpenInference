@@ -5,29 +5,31 @@
 
 ## 收开态差异
 
-- 收起:左侧 **6px 饱和紫 accent**;头部内联 tint 图标芯片。
-- 展开(选中):左侧为**宽浅紫色块(violet-50,w≈48px)+ 白底图标芯片**,卡片内容右移;
-  其余节点进入**蒙版态**(opacity 0.4 且不可点击,点击空白解除)。
+收起和展开共用头部:左侧 **4px 饱和紫 accent**(border-left,内容再空 16px)+ 紫底图标芯片(`far fa-chart-network`)。展开后边框变为分类色,表单、动作栏、右侧托盘出现;其余节点进入蒙版。
 
 ## 收起态
 
-- 左侧紫 accent(#6D28D9)+ 白卡;头部 = 紫 tint 图标块(`far fa-chart-network`)+
-  小字 "Object Detection Model"(text-[11px] capitalize text-gray-500)+ 粗体实例名;
-- 错误时右侧 pink-100 圆 + lucide triangle-alert(title=错误文本)。
+- 紫 accent(`#6D28D9`)+ 白卡;图标芯片为分类色约 22% 混白;
+- 小字 "Object Detection Model"(`text-[11px] text-gray-500`)+ 实例名(`text-[15px] font-semibold`);
+- 错误时右侧 pink-100 圆 + triangle-alert。不展示参数摘要。
 
-## 展开态(单击选中或双击)
+## 展开态(单击节点体)
 
-### 字段(默认可见 = 必填 ∪ 值≠默认 ∪ 已设 selector)
+### 字段
+
+主表单 = 必填 ∪ `always_visible` ∪ 已绑定 selector。可选字段即使改过值也留在左侧 Additional Properties。`relevant_for` 未命中的字段不出现。
 
 | 字段 | 类型 | 控件 | 说明 |
 |---|---|---|---|
-| Image*(images) | selector(image kind) | **绑定后 = chip**(gray-50,fa-image,hover × 清除);**未绑定 = "Select image" 按钮开来源选择弹层**(分组:$inputs 在前、各 step 输出按分类 tint,点选绑定);亦可从侧托盘拖 chip 到字段 | "The image to infer on." |
-| Model*(model_id) | model | **按钮 → Select a Model 弹窗**;空+必填 = border-pink-500 + 铅笔 pink + "Required input is missing" | "Roboflow model identifier." |
-| Confidence Mode(confidence_mode) | enum | 下拉 "Best (Recommended)"(chevron) | "How confidence thresholds are determined." |
-| Confidence 等 | number | 32px 输入框 | 收在 Show Additional Properties 后 |
+| Image*(images) | selector | 绑定后 chip(`inputs.image`);未绑定 "Select image" | "The image to infer on." |
+| Model*(model_id) | model | Select a Model;空且必填时红框 + "Required input is missing" | "Roboflow model identifier." |
+| Confidence Mode | enum,`always_visible` | 下拉显示 values_metadata,默认 "Best (Recommended)" | 即使值等于 default 也留在主表单 |
+| Custom Confidence | number,`relevant_for: confidence_mode=custom` | 仅 Custom 时出现在主表单 | |
+| Class Filter、Iou Threshold、Max Detections 等 | 各类 | 左侧 Additional Properties 面板 | 未改值时 number 的 default 是灰色 placeholder(不占输入值),聚焦后可直接输入,右侧上下箭头从该默认值加减;列表 placeholder 为 `a, b, c` |
 
-- 底部 bordered "Show Additional Properties"(fa-chevron-left);
-- 页脚 "Powered by Inference" + GitHub 图标(链到 roboflow/inference)。
+- 底部 "Show Additional Properties";打开后按钮变为 Hide,面板在节点左侧,不把字段塞进卡片;
+- 页脚 "Powered by Inference"(`ui_manifest.inference`);
+- 右侧 "3 Outputs":inference_id / predictions / model_id,芯片用模型分类色。
 
 ### 动作栏(上方白药丸)
 

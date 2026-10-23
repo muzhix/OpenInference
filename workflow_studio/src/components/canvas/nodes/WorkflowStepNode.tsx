@@ -1,9 +1,8 @@
 /**
- * Step node card, mirroring the official builder: wrapper with section-colored
- * left accent, header (tinted icon chip + small-caps block name + bold
- * instance name + pink error button), the schema-driven config form when
- * selected, the action bar above and the side trays beside, "Powered by
- * Inference" footer, 20px top/bottom handles.
+ * Step node card. Collapsed and expanded share one header: category accent,
+ * tinted icon, block name, instance name, validation badge. Expanding reveals
+ * the schema form, the additional-properties panel to the left, the action
+ * bar, and the side trays.
  */
 
 import { useState } from "react";
@@ -11,34 +10,19 @@ import type { NodeProps } from "@xyflow/react";
 
 import { blockDisplayName, blockShortName, errorsForNodeKey, faClasses, sectionMetaOf } from "../../../adapter";
 import type { AppNode } from "../../../adapter";
-import { ConfigForm } from "../ConfigForm";
+import { FieldList } from "../ConfigForm";
+import { poweredByOf } from "../fieldModel";
+import { splitFormFields } from "../formFields";
 import { UiIcon } from "../hollowIcons";
+import { sectionChipStyle } from "../sectionChip";
 import { selectValidation, useEditorStore } from "../../../state/editorStore";
 import { useRunStore } from "../../../state/runStore";
 import { NodeActionBar, NodeTrays, docsSlugFor } from "./NodeChrome";
+import { AdditionalPropertiesButton, AdditionalPropertiesPanel, PoweredByFooter } from "./stepChrome";
 import { TopTargetHandle, BottomSourceHandle } from "./shared";
-
-function summarize(params: Record<string, unknown>, selectorProps: string[]): string {
-  const parts: string[] = [];
-  for (const [key, value] of Object.entries(params)) {
-    if (key === "type" || key === "name" || selectorProps.includes(key)) {
-      continue;
-    }
-    if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
-      parts.push(`${key}: ${String(value)}`);
-    }
-    if (parts.length >= 3) {
-      break;
-    }
-  }
-  const text = parts.join(" · ");
-  return text.length > 52 ? `${text.slice(0, 51)}…` : text;
-}
 
 export function WorkflowStepNode(props: NodeProps<AppNode>) {
   const { id, data, selected, positionAbsoluteX, positionAbsoluteY } = props;
-  // The OPEN state is the single toggle (single click opens, clicking the
-  // open node again closes it); react-flow selection is visual only.
   const expanded = useEditorStore((state) => state.expandedNodeId === id);
   const removeNodes = useEditorStore((state) => state.removeNodes);
   const renameStepNode = useEditorStore((state) => state.renameStepNode);
@@ -47,11 +31,10 @@ export function WorkflowStepNode(props: NodeProps<AppNode>) {
   const toggleRunPanel = useEditorStore((state) => state.toggleRunPanel);
   const [showJson, setShowJson] = useState(false);
   const [renaming, setRenaming] = useState(false);
-  // Run result thumbnail (D3): step name -> last run's image output, if any.
+  const [showAdditional, setShowAdditional] = useState(false);
   const runThumbnail = useRunStore((state) =>
     data.kind === "step" ? state.stepThumbnails[data.stepName] : undefined,
   );
-  // Immediate dangling feedback (03 §5): first validation error aimed at this node.
   const nodeError = useEditorStore((state) => {
     if (data.kind !== "step") {
       return null;
@@ -67,9 +50,17 @@ export function WorkflowStepNode(props: NodeProps<AppNode>) {
   const meta = sectionMetaOf(section);
   const icon = block?.block_schema?.ui_manifest?.icon ?? "far fa-cube";
   const description = block?.block_schema?.short_description;
+  const schemaProperties = block?.block_schema?.properties ?? {};
+  const required = block?.block_schema?.required ?? [];
+  const { primary, additional } = splitFormFields(schemaProperties, required, step, selectorProps);
+  const poweredBy = poweredByOf(block?.block_schema?.ui_manifest);
+  const additionalOpen = expanded && showAdditional && additional.length > 0;
+  const edgeWidth = selected || expanded ? 2 : 1;
+  const edgeColor = hasDanglingRef ? "#DC2626" : selected || expanded ? meta.color : "#E5E7EB";
+  const accentColor = hasDanglingRef ? "#DC2626" : meta.color;
 
   return (
-    <div className="stepNodeWrapper group relative flex w-[280px] overflow-visible" style={{ width: 280 }}>
+    <div className="stepNodeWrapper group relative flex w-[280px] overflow-visible" style={{ width: 280, opacity: disabled ? 0.5 : 1 }}>
       <TopTargetHandle />
       <BottomSourceHandle />
       {expanded ? (
@@ -87,57 +78,47 @@ export function WorkflowStepNode(props: NodeProps<AppNode>) {
         />
       ) : null}
       {expanded ? <NodeTrays nodeId={id} /> : null}
-      {expanded ? (
-        // Official expanded state: a WIDE light tint block on the left with
-        // the block icon on a white chip riding on it (collapsed keeps the
-        // thin saturated accent bar).
-        <>
-          <span
-            aria-hidden="true"
-            className="absolute bottom-0 left-0 top-0 z-20 w-12 rounded-l-lg"
-            style={{ backgroundColor: meta.tint }}
+      {additionalOpen ? (
+        <AdditionalPropertiesPanel onClose={() => setShowAdditional(false)}>
+          <FieldList
+            stepName={stepName}
+            step={step}
+            keys={additional}
+            schemaProperties={schemaProperties}
+            required={required}
+            selectorProps={selectorProps}
           />
-          <span
-            aria-hidden="true"
-            className="absolute left-[9px] top-3 z-20 flex h-9 w-9 items-center justify-center rounded-md bg-white shadow-sm"
-            style={{ color: meta.color }}
-          >
-            <i className={faClasses(icon)} />
-          </span>
-        </>
-      ) : (
-        <span
-          aria-hidden="true"
-          className="absolute bottom-0 left-0 top-0 z-20 w-1.5 rounded-l-lg"
-          style={{ backgroundColor: meta.color, opacity: disabled ? 0.4 : 1 }}
-        />
-      )}
+        </AdditionalPropertiesPanel>
+      ) : null}
       <div
-        className={`graphBlock relative z-10 flex-1 rounded-lg border border-l-0 bg-white p-3 shadow-sm transition-all duration-300 hover:shadow-md ${expanded ? "pl-14" : ""}`}
+        className="graphBlock relative z-10 flex-1 rounded-lg border bg-white py-3 pl-4 pr-3 shadow-sm transition-shadow hover:shadow-md"
         style={{
-          borderColor: hasDanglingRef ? "#DC2626" : selected ? meta.color : "#E5E7EB",
-          opacity: disabled ? 0.5 : 1,
+          borderStyle: "solid",
+          borderTopWidth: edgeWidth,
+          borderRightWidth: edgeWidth,
+          borderBottomWidth: edgeWidth,
+          borderLeftWidth: 4,
+          borderTopColor: edgeColor,
+          borderRightColor: edgeColor,
+          borderBottomColor: edgeColor,
+          borderLeftColor: accentColor,
         }}
       >
-        <div className="relative z-10 flex w-full flex-col gap-2.5">
+        <div className="relative z-10 flex w-full flex-col gap-3">
           <div className="flex w-full cursor-pointer items-center justify-between gap-3">
             <div className="flex min-w-0 flex-1 items-center gap-3">
-              {expanded ? null : (
-                <span
-                  aria-hidden="true"
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-sm"
-                  style={{ backgroundColor: meta.tint, color: meta.color }}
-                >
-                  <i className={faClasses(icon)} />
-                </span>
-              )}
+              <span
+                aria-hidden="true"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-base"
+                style={sectionChipStyle(meta.color, "icon")}
+              >
+                <i className={faClasses(icon)} />
+              </span>
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1 text-[11px] capitalize text-gray-500">
-                  <span className="truncate" title={title}>
-                    {title}
-                  </span>
+                <div className="truncate text-[11px] text-gray-500" title={title}>
+                  {title}
                 </div>
-                <div className="mt-0.5 truncate text-sm font-medium text-gray-800">
+                <div className="mt-0.5 truncate text-[15px] font-semibold leading-5 text-gray-900">
                   {renaming ? (
                     <input
                       type="text"
@@ -160,7 +141,7 @@ export function WorkflowStepNode(props: NodeProps<AppNode>) {
                           setRenaming(false);
                         }
                       }}
-                      className="w-full rounded-md border border-gray-300 px-1.5 py-0.5 text-sm text-gray-800 focus:border-blue-500 focus:outline-none"
+                      className="w-full rounded-md border border-gray-300 px-1.5 py-0.5 text-sm font-semibold text-gray-900 focus:border-blue-500 focus:outline-none"
                     />
                   ) : (
                     stepName
@@ -174,31 +155,29 @@ export function WorkflowStepNode(props: NodeProps<AppNode>) {
                 tabIndex={0}
                 aria-label="Node validation error"
                 title={nodeError}
-                className="flex h-7 w-7 shrink-0 cursor-help items-center justify-center rounded-full bg-pink-100"
+                className="flex h-8 w-8 shrink-0 cursor-help items-center justify-center rounded-full bg-pink-100"
               >
-                <UiIcon name="alert" className="text-xs text-pink-800" />
+                <UiIcon name="alert" className="text-sm text-pink-700" />
               </span>
             ) : null}
           </div>
 
           {expanded ? (
-            <ConfigForm
+            <FieldList
               stepName={stepName}
               step={step}
-              schemaProperties={block?.block_schema?.properties ?? {}}
-              required={block?.block_schema?.required ?? []}
+              keys={primary}
+              schemaProperties={schemaProperties}
+              required={required}
               selectorProps={selectorProps}
             />
-          ) : (
-            <>
-              <p className="truncate text-xs text-gray-400" title={summarize(step, selectorProps)}>
-                {summarize(step, selectorProps) || "—"}
-              </p>
-              {runThumbnail ? (
-                <img src={runThumbnail} alt="Run result" className="h-24 w-full rounded object-cover" />
-              ) : null}
-            </>
-          )}
+          ) : runThumbnail ? (
+            <img src={runThumbnail} alt="Run result" className="h-24 w-full rounded object-cover" />
+          ) : null}
+
+          {expanded && additional.length > 0 ? (
+            <AdditionalPropertiesButton open={additionalOpen} onToggle={() => setShowAdditional((open) => !open)} />
+          ) : null}
 
           {showJson ? (
             <pre
@@ -209,23 +188,7 @@ export function WorkflowStepNode(props: NodeProps<AppNode>) {
             </pre>
           ) : null}
 
-          {expanded ? (
-            <div className="flex flex-col items-center gap-0.5 text-[10px] text-gray-500">
-              <div>
-                <span>Powered by</span>
-                <span> </span>
-                <a
-                  href="https://github.com/roboflow/inference"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline hover:text-gray-700"
-                >
-                  Inference
-                </a>
-                <i className={`${faClasses("fa-brands fa-github")} ml-0.5 text-black`} aria-hidden="true" />
-              </div>
-            </div>
-          ) : null}
+          {expanded && poweredBy ? <PoweredByFooter poweredBy={poweredBy} /> : null}
         </div>
       </div>
     </div>

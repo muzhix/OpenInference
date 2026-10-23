@@ -1,5 +1,6 @@
 /** Sticky ledger header (01 §1): title, Workflows/Evals tabs, search + controls row. */
 
+import { UiIcon } from "../canvas/hollowIcons";
 import { Button } from "../ui/Button";
 
 export function LedgerHeader({
@@ -63,12 +64,7 @@ export function LedgerHeader({
             title="List view is not available yet"
             className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-2 focus-visible:outline-primary"
           >
-            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-              <rect x="1" y="1" width="6" height="6" rx="1" />
-              <rect x="9" y="1" width="6" height="6" rx="1" />
-              <rect x="1" y="9" width="6" height="6" rx="1" />
-              <rect x="9" y="9" width="6" height="6" rx="1" />
-            </svg>
+            <UiIcon name="grid" className="text-base" />
           </button>
           <Button
             variant="ghost"
@@ -86,9 +82,7 @@ export function LedgerHeader({
             className="inline-flex h-10 items-center gap-1.5 rounded-lg px-3 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-primary"
           >
             Sort by: Last edited
-            <svg aria-hidden="true" width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
-              <path d="M2 4l3 3 3-3z" />
-            </svg>
+            <UiIcon name="chevron-down" className="text-xs" />
           </button>
           <Button
             variant="primary"

@@ -58,6 +58,37 @@ export function selectorPropertiesForBlock(
   return [...names].sort();
 }
 
+/** Kind names under which the kinds_connections matrix binds `property` on the block. */
+export function acceptedKindsForProperty(
+  registry: BlockRegistry | null | undefined,
+  manifestType: string,
+  property: string,
+): string[] {
+  if (!registry) {
+    return [];
+  }
+  const kinds: string[] = [];
+  for (const [kindName, entries] of Object.entries(registry.kinds_connections)) {
+    if (entries.some((entry) => entry.manifest_type_identifier === manifestType && entry.property_name === property)) {
+      kinds.push(kindName);
+    }
+  }
+  return kinds;
+}
+
+/** Compatible when the names match, one side is a `prefix/*` wildcard, or the leaf names match. */
+export function kindsMatch(required: string, provided: string): boolean {
+  if (required === provided) {
+    return true;
+  }
+  const wildcard = (pattern: string, value: string): boolean =>
+    pattern.endsWith("/*") && value.startsWith(pattern.slice(0, -1));
+  if (wildcard(required, provided) || wildcard(provided, required)) {
+    return true;
+  }
+  return required.split("/").pop() === provided.split("/").pop();
+}
+
 /**
  * The block's primary image input property: a selector property accepting the
  * "image" kind (used by addStep auto-binding). Prefers `image`, then `images`,

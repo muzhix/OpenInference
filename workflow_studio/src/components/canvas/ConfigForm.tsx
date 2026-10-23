@@ -1,22 +1,42 @@
 /**
- * Schema-driven inline config form (expanded node), mirroring the official
- * builder's field rows: label + kind icon + "?" + one-line description above
- * the control; selector values render as chips (drop targets for the side
- * tray's drag-to-connect); model_id opens the Select-a-Model modal; optional
- * fields wait behind the bordered "Show Additional Properties" toggle.
+ * Schema-driven config form for an expanded step node.
+ *
+ * Primary fields render on the node. Optional fields render in the left-hand
+ * Additional Properties panel (the parent owns that panel). Selector values
+ * are chips tinted by the source block's category. Enums use values_metadata
+ * labels. `operations` opens the detections-filter dialog.
  */
 
 import { useEffect, useState } from "react";
 
-import { faClasses } from "../../adapter";
-import { UiIcon } from "./hollowIcons";
-import { SelectorPicker } from "./SelectorPicker";
-import { SelectModelModal } from "./SelectModelModal";
-import { splitFormFields } from "./formFields";
+import { blockSectionOf, sectionMetaOf } from "../../adapter";
+import { setParam } from "../../adapter/mutations";
 import { useEditorStore } from "../../state/editorStore";
-
+import { stepsToList } from "../../types/spec";
 import type { JsonSchemaProperty } from "../../types/registry";
 import type { WorkflowStepSpec } from "../../types/spec";
+
+import { FIELD_CONTROL, FIELD_HINT, FIELD_MENU } from "./nodes/shared";
+import { DetectionsFilterModal } from "./DetectionsFilterModal";
+import { SelectorPicker } from "./SelectorPicker";
+import { SelectModelModal } from "./SelectModelModal";
+import { UiIcon, outputFieldIconName } from "./hollowIcons";
+import { filterStatusLabel } from "./detectionsFilter";
+import {
+  displayValue,
+  enumLabel,
+  enumValues,
+  formatStringList,
+  isBooleanSchema,
+  isNumberSchema,
+  isStringListSchema,
+  listPlaceholder,
+  nudgeNumber,
+  parseStringList,
+  selectorChipLabel,
+  selectorSourceStep,
+} from "./fieldModel";
+import { sectionChipStyle } from "./sectionChip";
 
 /** Drag payload type used by the side-tray chips and field drop zones. */
 export const WF_SELECTOR_DRAG_TYPE = "application/x-wf-selector";
@@ -26,8 +46,7 @@ function prettify(name: string): string {
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }
 
-/** Small kind hint icon shown next to the label (heuristic, official uses kinds). */
-function labelIcon(property: string): string | null {
+function propertyIcon(property: string, schema: JsonSchemaProperty | undefined): string | null {
   const lower = property.toLowerCase();
   if (lower.includes("image")) {
     return "image";
@@ -38,62 +57,54 @@ function labelIcon(property: string): string | null {
   if (lower.includes("video")) {
     return "video";
   }
+  if (lower.includes("prediction")) {
+    return "box";
+  }
+  if (lower.includes("inference_id")) {
+    return "id-card";
+  }
+  if (isStringListSchema(schema)) {
+    return "list";
+  }
   return null;
 }
 
-export function ConfigForm({
+export function FieldList({
   stepName,
   step,
+  keys,
   schemaProperties,
   required,
   selectorProps,
 }: {
   stepName: string;
   step: WorkflowStepSpec;
+  keys: string[];
   schemaProperties: Record<string, JsonSchemaProperty>;
   required: string[];
   selectorProps: string[];
 }) {
   const setStepParam = useEditorStore((state) => state.setStepParam);
-  const [showAdditional, setShowAdditional] = useState(false);
-
-  const { primary, additional } = splitFormFields(schemaProperties, required, step, selectorProps);
-
   return (
-    <div className="workflow-form-fields flex flex-col gap-2.5 text-left">
-      {(showAdditional ? [...primary, ...additional] : primary).map((property) => (
+    <div className="workflow-form-fields flex flex-col text-left">
+      {keys.map((property) => (
         <FieldRow
           key={property}
+          stepName={stepName}
           property={property}
           value={step[property]}
           schema={schemaProperties[property]}
           isRequired={required.includes(property)}
-          isSelector={
-            selectorProps.includes(property) ||
-            (typeof step[property] === "string" && String(step[property]).startsWith("$"))
-          }
+          isSelector={selectorProps.includes(property)}
           onChange={(next) => setStepParam(stepName, property, next)}
         />
       ))}
-
-      {additional.length > 0 ? (
-        <div className="border-t border-gray-100 pt-3">
-          <button
-            type="button"
-            aria-label="Show additional properties"
-            onClick={() => setShowAdditional(!showAdditional)}
-            className="flex h-8 w-full items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-2.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50"
-          >
-            <UiIcon name="chevron-left" className={`text-sm transition-transform ${showAdditional ? "-rotate-90" : ""}`} />
-            <span>{showAdditional ? "Hide Additional Properties" : "Show Additional Properties"}</span>
-          </button>
-        </div>
-      ) : null}
     </div>
   );
 }
 
 function FieldRow({
+  stepName,
   property,
   value,
   schema,
@@ -101,6 +112,7 @@ function FieldRow({
   isSelector,
   onChange,
 }: {
+  stepName: string;
   property: string;
   value: unknown;
   schema?: JsonSchemaProperty;
@@ -110,136 +122,58 @@ function FieldRow({
 }) {
   const label = schema?.title ?? prettify(property);
   const description = typeof schema?.description === "string" ? schema.description : undefined;
-  const missingRequired = isRequired && (value === undefined || value === null || value === "");
-  const icon = labelIcon(property);
-  const [dropActive, setDropActive] = useState(false);
+  const icon = propertyIcon(property, schema);
+  const enums = enumValues(schema);
+  const boundSelector = typeof value === "string" && value.startsWith("$");
+  const isModelId = property === "model_id" || property === "model";
+  const isOperations = property === "operations";
+  const missingRequired = isRequired && (value === undefined || value === null || value === "") && !isOperations;
 
-  const onDropSelector = (event: React.DragEvent): void => {
-    event.preventDefault();
-    setDropActive(false);
-    const selector = event.dataTransfer.getData(WF_SELECTOR_DRAG_TYPE) || event.dataTransfer.getData("text/plain");
-    if (selector.startsWith("$")) {
-      onChange(selector);
-    }
-  };
+  if (isOperations) {
+    return (
+      <div data-field-name={property} className="mb-4 min-w-0 last:mb-0">
+        <OperationsField stepName={stepName} value={value} />
+      </div>
+    );
+  }
 
   let control: JSX.Element;
-  const isModelId = property === "model_id" || property === "model";
-  if (isModelId) {
+  let selectorMissing = false;
+  if (isModelId && !boundSelector) {
     control = <ModelField value={typeof value === "string" ? value : ""} required={isRequired} onChange={onChange} />;
-  } else if (isSelector && (typeof value === "string" || value === undefined)) {
-    const text = typeof value === "string" ? value : "";
-    control = text ? (
-      <div
-        className={`nodrag drop-zone-base inline-flex max-w-full items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium transition-colors ${
-          dropActive ? "border-primary bg-primary-50" : "border-gray-200 bg-gray-50 text-gray-700"
-        }`}
-        onDragOver={(event) => {
-          if (event.dataTransfer.types.includes(WF_SELECTOR_DRAG_TYPE)) {
-            event.preventDefault();
-            setDropActive(true);
-          }
-        }}
-        onDragLeave={() => setDropActive(false)}
-        onDrop={onDropSelector}
-      >
-        {icon ? <UiIcon name={icon} className="text-[10px] text-gray-400" /> : null}
-        <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">{text.replace(/^\$/, "")}</span>
-        <button
-          type="button"
-          aria-label={`Clear ${label}`}
-          onClick={() => onChange(undefined)}
-          className="ml-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded text-current hover:bg-black/10"
-        >
-          <UiIcon name="x" className="text-[10px]" />
-        </button>
-      </div>
-    ) : (
-      <div
-        className={`nodrag drop-zone-base rounded-lg border-2 border-dashed transition-colors ${
-          dropActive ? "border-primary bg-primary-50" : "border-transparent"
-        }`}
-        onDragOver={(event) => {
-          if (event.dataTransfer.types.includes(WF_SELECTOR_DRAG_TYPE)) {
-            event.preventDefault();
-            setDropActive(true);
-          }
-        }}
-        onDragLeave={() => setDropActive(false)}
-        onDrop={onDropSelector}
-      >
-        <SelectorPicker
-          property={property}
-          ariaLabel={`${label} selector`}
-          onPick={(selector) => onChange(selector)}
-        />
-      </div>
-    );
-  } else if (Array.isArray(schema?.enum)) {
-    const options = schema.enum.map((option) => String(option));
-    const current = value === undefined ? "" : String(value);
-    if (current && !options.includes(current)) {
-      options.push(current);
-    }
+  } else if (boundSelector) {
+    control = <SelectorChip value={value} onChange={onChange} onDropSelector={onChange} />;
+  } else if (enums) {
+    control = <EnumField label={label} value={value} schema={schema} options={enums} onChange={onChange} />;
+  } else if (isBooleanSchema(schema) || typeof value === "boolean") {
+    control = <ToggleField label={label} value={value} schema={schema} onChange={onChange} />;
+  } else if (isNumberSchema(schema) || typeof value === "number") {
+    control = <NumberField ariaLabel={label} value={value} schema={schema} onChange={onChange} />;
+  } else if (isStringListSchema(schema)) {
+    control = <StringListField label={label} value={value} schema={schema} onChange={onChange} />;
+  } else if (isSelector) {
+    selectorMissing = missingRequired;
     control = (
-      <select
-        aria-label={label}
-        value={current}
-        onChange={(event) => onChange(event.target.value === "" ? undefined : event.target.value)}
-        className="nodrag h-8 w-full rounded-lg border border-gray-300 bg-white px-2 text-xs text-gray-800 focus:border-blue-500 focus:outline-none"
-      >
-        <option value="">not set</option>
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
+      <SelectorPicker
+        property={property}
+        stepName={stepName}
+        ariaLabel={`${label} selector`}
+        onPick={(selector) => onChange(selector)}
+      />
     );
-  } else if (schema?.type === "boolean" || typeof value === "boolean") {
-    control = (
-      <label className="nodrag flex items-center gap-2 text-xs text-gray-700">
-        <input
-          type="checkbox"
-          aria-label={label}
-          checked={value === true}
-          onChange={(event) => onChange(event.target.checked)}
-        />
-        {value === true ? "enabled" : "disabled"}
-      </label>
-    );
-  } else if (
-    schema?.type === "integer" ||
-    schema?.type === "number" ||
-    (Array.isArray(schema?.type) && (schema.type as string[]).some((t) => t === "number" || t === "integer")) ||
-    typeof value === "number"
-  ) {
-    control = <NumberField ariaLabel={label} value={typeof value === "number" ? value : undefined} onChange={onChange} />;
-  } else if (
-    (typeof value === "object" && value !== null) ||
-    schema?.type === "array" ||
-    schema?.type === "object"
-  ) {
+  } else if ((typeof value === "object" && value !== null) || schema?.type === "array" || schema?.type === "object") {
     control = <JsonField ariaLabel={label} value={value} onChange={onChange} />;
   } else {
-    const asString = typeof value === "string" ? value : "";
-    const long = asString.length > 80;
-    control = long ? (
-      <textarea
-        aria-label={label}
-        value={asString}
-        rows={3}
-        onChange={(event) => onChange(event.target.value === "" ? undefined : event.target.value)}
-        className="nodrag rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-800 focus:border-blue-500 focus:outline-none"
-      />
-    ) : (
+    const current = typeof value === "string" ? value : "";
+    const fallback = typeof schema?.default === "string" ? schema.default : "";
+    control = (
       <input
         type="text"
         aria-label={label}
-        value={asString}
-        placeholder="not set"
+        value={current}
+        placeholder={fallback || "not set"}
         onChange={(event) => onChange(event.target.value === "" ? undefined : event.target.value)}
-        className="nodrag h-8 w-full rounded-md border border-gray-300 px-2 text-xs text-gray-800 focus:border-blue-500 focus:outline-none"
+        className={FIELD_CONTROL}
       />
     );
   }
@@ -250,28 +184,175 @@ function FieldRow({
         <div className="flex items-center gap-1">
           <label className="text-xs font-medium text-gray-600">
             {label}
-            {isRequired ? <span className="ml-1 text-pink-800">*</span> : null}
+            {isRequired ? <span className="ml-1 text-pink-700">*</span> : null}
           </label>
-          {icon ? <UiIcon name={icon} className="text-[10px] text-gray-400" /> : null}
+          {icon ? <UiIcon name={icon} className="text-xs text-gray-400" /> : null}
           {description ? (
-            <span className="cursor-help text-xs text-gray-400" title={description}>
-              <UiIcon name="help" className="text-sm" />
+            <span role="tooltip" className="inline-flex cursor-help text-gray-400" title={description}>
+              <UiIcon name="help" className="text-xs" />
             </span>
           ) : null}
         </div>
-        {description ? (
-          <p className="line-clamp-1 text-[11px] leading-relaxed text-gray-500">{description}</p>
-        ) : null}
+        {description ? <p className={`line-clamp-1 ${FIELD_HINT} text-gray-500`}>{description}</p> : null}
       </div>
       {control}
-      {isModelId && missingRequired ? (
-        <div className="mt-1 text-[11px] text-pink-800">Required input is missing</div>
+      {(isModelId && missingRequired) || selectorMissing ? (
+        <div className={`mt-1 ${FIELD_HINT} text-pink-700`}>Required input is missing</div>
       ) : null}
     </div>
   );
 }
 
-/** Model identifier field: opens the Select-a-Model modal (official behavior). */
+function useDropSelector(onDrop: (selector: string) => void): {
+  dropActive: boolean;
+  dropProps: {
+    onDragOver: (event: React.DragEvent) => void;
+    onDragLeave: () => void;
+    onDrop: (event: React.DragEvent) => void;
+  };
+} {
+  const [dropActive, setDropActive] = useState(false);
+  return {
+    dropActive,
+    dropProps: {
+      onDragOver: (event) => {
+        if (event.dataTransfer.types.includes(WF_SELECTOR_DRAG_TYPE)) {
+          event.preventDefault();
+          setDropActive(true);
+        }
+      },
+      onDragLeave: () => setDropActive(false),
+      onDrop: (event) => {
+        event.preventDefault();
+        setDropActive(false);
+        const selector = event.dataTransfer.getData(WF_SELECTOR_DRAG_TYPE) || event.dataTransfer.getData("text/plain");
+        if (selector.startsWith("$")) {
+          onDrop(selector);
+        }
+      },
+    },
+  };
+}
+
+function SelectorChip({
+  value,
+  onChange,
+  onDropSelector,
+}: {
+  value: string;
+  onChange: (next: unknown) => void;
+  onDropSelector: (selector: string) => void;
+}) {
+  const spec = useEditorStore((state) => state.spec);
+  const { dropActive, dropProps } = useDropSelector(onDropSelector);
+  const source = selectorSourceStep(value);
+  const sourceStep = source ? stepsToList(spec?.steps ?? []).find((entry) => entry.name === source) : undefined;
+  const section = sourceStep ? blockSectionOf(sourceStep.step.type) : null;
+  const meta = section ? sectionMetaOf(section) : null;
+  const outputName = value.split(".").pop() ?? value;
+  const iconName = outputFieldIconName(outputName);
+  return (
+    <div
+      className={`nodrag inline-flex max-w-full items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium ${
+        dropActive ? "border-primary" : ""
+      }`}
+      style={meta ? sectionChipStyle(meta.color) : { backgroundColor: "#F9FAFB", color: "#374151", borderColor: "#E5E7EB" }}
+      {...dropProps}
+    >
+      <UiIcon name={iconName} className="text-xs" />
+      <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">{selectorChipLabel(value)}</span>
+      <button
+        type="button"
+        aria-label="Clear selector"
+        onClick={() => onChange(undefined)}
+        className="ml-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded hover:bg-black/10"
+      >
+        <UiIcon name="x" className="text-xs" />
+      </button>
+    </div>
+  );
+}
+
+function EnumField({
+  label,
+  value,
+  schema,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: unknown;
+  schema?: JsonSchemaProperty;
+  options: string[];
+  onChange: (next: unknown) => void;
+}) {
+  const { dropActive, dropProps } = useDropSelector(onChange);
+  const shown = displayValue(value, schema);
+  const current = shown === undefined || shown === null ? "" : String(shown);
+  const choices = current && !options.includes(current) ? [...options, current] : options;
+  return (
+    <div
+      className={`${FIELD_CONTROL} relative flex items-center ${dropActive ? "border-primary" : ""}`}
+      {...dropProps}
+    >
+      <span className={`min-w-0 flex-1 truncate text-xs ${current ? "text-gray-800" : "text-gray-400"}`}>
+        {current ? enumLabel(current, schema) : "not set"}
+      </span>
+      <button
+        type="button"
+        aria-label={`Clear ${label}`}
+        className="relative z-10 flex h-4 w-4 items-center justify-center text-gray-400 hover:text-gray-700"
+        onClick={() => onChange(undefined)}
+      >
+        <UiIcon name="x" className="text-xs" />
+      </button>
+      <UiIcon name="chevron-down" className="pointer-events-none relative z-10 ml-1 text-xs text-gray-400" />
+      <select
+        aria-label={label}
+        value={choices.includes(current) ? current : ""}
+        onChange={(event) => onChange(event.target.value === "" ? undefined : event.target.value)}
+        className="absolute inset-0 cursor-pointer opacity-0"
+      >
+        {current === "" ? <option value="">not set</option> : null}
+        {choices.map((option) => (
+          <option key={option} value={option}>
+            {enumLabel(option, schema)}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function ToggleField({
+  label,
+  value,
+  schema,
+  onChange,
+}: {
+  label: string;
+  value: unknown;
+  schema?: JsonSchemaProperty;
+  onChange: (next: unknown) => void;
+}) {
+  const shown = displayValue(value, schema);
+  const on = shown === true;
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-label={label}
+      aria-checked={on}
+      onClick={() => onChange(!on)}
+      className={`nodrag relative h-5 w-9 rounded-full transition-colors ${on ? "bg-primary" : "bg-gray-200"}`}
+    >
+      <span
+        className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${on ? "left-4" : "left-0.5"}`}
+      />
+    </button>
+  );
+}
+
 function ModelField({
   value,
   required,
@@ -284,19 +365,17 @@ function ModelField({
   const [open, setOpen] = useState(false);
   const empty = !value;
   return (
-    <div className="nodrag drop-zone-base">
+    <div className="nodrag">
       <button
         type="button"
         aria-label="Select model"
         onClick={() => setOpen(true)}
-        className={`flex h-8 w-full cursor-pointer items-center justify-between rounded-lg border px-2.5 text-left text-xs transition-colors hover:border-gray-400 hover:bg-gray-50 ${
-          empty && required ? "border-pink-500 bg-white" : "border-gray-300 bg-white"
-        }`}
+        className={`${FIELD_MENU} font-normal ${empty && required ? "border-pink-500" : ""}`}
       >
         <span className={`flex-1 truncate ${empty ? "text-gray-400" : "text-gray-800"}`}>
           {empty ? "No Model Selected" : value}
         </span>
-        <UiIcon name="edit" className={`ml-1 text-xs ${empty && required ? "text-pink-700" : "text-gray-400"}`} />
+        <UiIcon name="edit" className={`ml-1 text-xs ${empty && required ? "text-pink-600" : "text-gray-400"}`} />
       </button>
       {open ? (
         <SelectModelModal
@@ -312,36 +391,140 @@ function ModelField({
   );
 }
 
+function OperationsField({ stepName, value }: { stepName: string; value: unknown }) {
+  const [open, setOpen] = useState(false);
+  const mutate = useEditorStore((state) => state.mutate);
+  const configured = Array.isArray(value) && value.length > 0;
+  return (
+    <div className="rounded-lg bg-gray-50 px-3 py-2.5">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs font-medium text-gray-700">
+          Operations <span className="text-pink-700">*</span>
+        </span>
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="rounded-md border border-primary px-2.5 py-1 text-xs font-medium text-primary hover:bg-primary-50"
+        >
+          Configure
+        </button>
+      </div>
+      <p className={`mt-1 ${FIELD_HINT} text-gray-400 ${configured ? "" : "italic"}`}>{filterStatusLabel(value)}</p>
+      {open ? (
+        <DetectionsFilterModal
+          operations={value}
+          onClose={() => setOpen(false)}
+          onSave={(operations) => {
+            mutate((spec) => setParam(spec, stepName, "operations", operations.length > 0 ? operations : undefined));
+          }}
+        />
+      ) : null}
+    </div>
+  );
+}
+
 function NumberField({
   ariaLabel,
   value,
+  schema,
   onChange,
 }: {
   ariaLabel: string;
-  value: number | undefined;
+  value: unknown;
+  schema?: JsonSchemaProperty;
   onChange: (next: unknown) => void;
 }) {
-  const [text, setText] = useState(value === undefined ? "" : String(value));
+  const [text, setText] = useState(typeof value === "number" ? String(value) : "");
   useEffect(() => {
-    setText(value === undefined ? "" : String(value));
+    if (typeof value !== "number") {
+      setText("");
+      return;
+    }
+    setText((current) => (Number(current) === value ? current : String(value)));
   }, [value]);
+  const { dropActive, dropProps } = useDropSelector(onChange);
+  const placeholder = typeof schema?.default === "number" ? String(schema.default) : undefined;
+  const applyNudge = (direction: 1 | -1) => {
+    const next = nudgeNumber(text, schema, direction);
+    setText(String(next));
+    onChange(next);
+  };
+  return (
+    <div className="nodrag relative" {...dropProps}>
+      <input
+        type="text"
+        inputMode="decimal"
+        aria-label={ariaLabel}
+        value={text}
+        placeholder={placeholder}
+        onChange={(event) => {
+          const raw = event.target.value;
+          if (raw !== "" && !/^-?\d*\.?\d*$/.test(raw)) {
+            return;
+          }
+          setText(raw);
+          if (raw === "" || raw === "-" || raw === "." || raw === "-.") {
+            onChange(undefined);
+            return;
+          }
+          const parsed = Number(raw);
+          if (!Number.isNaN(parsed)) {
+            onChange(parsed);
+          }
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+            event.preventDefault();
+            applyNudge(event.key === "ArrowUp" ? 1 : -1);
+          }
+        }}
+        className={`${FIELD_CONTROL} pr-6 ${dropActive ? "border-primary" : ""}`}
+      />
+      <div className="absolute inset-y-px right-1 flex flex-col justify-center text-gray-400">
+        <button
+          type="button"
+          tabIndex={-1}
+          aria-label={`Increase ${ariaLabel}`}
+          onClick={() => applyNudge(1)}
+          className="nodrag flex h-3 w-3.5 items-center justify-center hover:text-gray-700"
+        >
+          <UiIcon name="chevron-up" className="text-[10px]" />
+        </button>
+        <button
+          type="button"
+          tabIndex={-1}
+          aria-label={`Decrease ${ariaLabel}`}
+          onClick={() => applyNudge(-1)}
+          className="nodrag flex h-3 w-3.5 items-center justify-center hover:text-gray-700"
+        >
+          <UiIcon name="chevron-down" className="text-[10px]" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function StringListField({
+  label,
+  value,
+  schema,
+  onChange,
+}: {
+  label: string;
+  value: unknown;
+  schema?: JsonSchemaProperty;
+  onChange: (next: unknown) => void;
+}) {
+  const { dropActive, dropProps } = useDropSelector(onChange);
   return (
     <input
-      type="number"
-      aria-label={ariaLabel}
-      value={text}
-      onChange={(event) => {
-        setText(event.target.value);
-        if (event.target.value === "") {
-          onChange(undefined);
-          return;
-        }
-        const parsed = Number(event.target.value);
-        if (!Number.isNaN(parsed)) {
-          onChange(parsed);
-        }
-      }}
-      className="nodrag h-8 w-full rounded-md border border-gray-300 px-2 text-xs text-gray-800 focus:border-blue-500 focus:outline-none"
+      type="text"
+      aria-label={label}
+      value={formatStringList(value)}
+      placeholder={listPlaceholder(schema)}
+      {...dropProps}
+      onChange={(event) => onChange(parseStringList(event.target.value))}
+      className={`${FIELD_CONTROL} ${dropActive ? "border-primary" : ""}`}
     />
   );
 }

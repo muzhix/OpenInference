@@ -5,7 +5,7 @@ import type { NodeProps } from "@xyflow/react";
 
 import type { AppNode } from "../../../adapter";
 import { useEditorStore } from "../../../state/editorStore";
-import { CloseIcon } from "../icons";
+import { UiIcon } from "../hollowIcons";
 
 export function StickyNoteNode(props: NodeProps<AppNode>) {
   const { id, data, selected } = props;
@@ -49,7 +49,7 @@ export function StickyNoteNode(props: NodeProps<AppNode>) {
         onClick={() => deleteNote(data.note.id)}
         className="absolute right-1 top-1 rounded p-0.5 text-gray-400 hover:bg-amber-100 hover:text-gray-700"
       >
-        <CloseIcon />
+        <UiIcon name="x" className="text-base" />
       </button>
     </div>
   );

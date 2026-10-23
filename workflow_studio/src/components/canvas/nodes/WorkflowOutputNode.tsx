@@ -27,17 +27,13 @@ import { UiIcon, inputTypeIconName, outputFieldIconName } from "../hollowIcons";
 import { useEditorStore } from "../../../state/editorStore";
 import { useRegistryStore } from "../../../state/registryStore";
 import { NodeTrays } from "./NodeChrome";
-import { TopTargetHandle } from "./shared";
+import { FIELD_ACTION, FIELD_CONTROL, FIELD_MENU, TopTargetHandle } from "./shared";
 
 const GENERIC_KINDS = new Set(["string", "integer", "float", "number", "boolean", "any", "dict", "list"]);
 
-/** Same field and button chrome as the Inputs card. */
-const FIELD =
-  "nodrag w-full rounded border border-gray-300 px-2 py-1 text-xs text-gray-800 outline-none focus:border-purple-500";
-const MENU_BUTTON =
-  "flex h-7 w-full items-center justify-between rounded-lg border border-gray-300 bg-white px-2.5 text-xs font-medium text-gray-700";
+/** Same 32px control chrome as Inputs and step forms. */
 const FORM_ACTION =
-  "flex h-[32px] min-h-[32px] flex-1 items-center justify-center rounded-lg px-2.5 text-xs font-medium transition-colors";
+  "flex h-8 min-h-8 flex-1 items-center justify-center rounded-lg px-2.5 text-xs font-medium transition-colors";
 
 interface FieldRow {
   selector: string;
@@ -463,7 +459,7 @@ export function WorkflowOutputNode(props: NodeProps<AppNode>) {
                           setRenaming(null);
                         }
                       }}
-                      className={FIELD}
+                      className={FIELD_CONTROL}
                     />
                   ) : (
                     <>
@@ -536,7 +532,7 @@ export function WorkflowOutputNode(props: NodeProps<AppNode>) {
                       ref={bindingMenu === output.name ? bindingButtonRef : undefined}
                       aria-label={`Select field for ${output.name}`}
                       aria-expanded={bindingMenu === output.name}
-                      className={`${MENU_BUTTON} text-gray-400`}
+                      className={`${FIELD_MENU} text-gray-400`}
                       onClick={() => setBindingMenu(bindingMenu === output.name ? null : output.name)}
                     >
                       <span>Select a Field...</span>
@@ -586,7 +582,7 @@ export function WorkflowOutputNode(props: NodeProps<AppNode>) {
                       submit();
                     }
                   }}
-                  className={`${FIELD} placeholder:text-gray-400 ${nameError ? "border-red-500 focus:border-red-500" : ""}`}
+                  className={`${FIELD_CONTROL} ${nameError ? "border-red-500 focus:border-red-500" : ""}`}
                 />
                 {nameError ? <span className="break-words text-[10px] text-red-500">{nameError}</span> : null}
               </label>
@@ -614,7 +610,7 @@ export function WorkflowOutputNode(props: NodeProps<AppNode>) {
                         }}
                         className="ml-0.5 flex h-4 w-4 items-center justify-center rounded text-current hover:bg-black/10"
                       >
-                        <UiIcon name="x" className="text-[10px]" />
+                        <UiIcon name="x" className="text-xs" />
                       </button>
                     </span>
                   </div>
@@ -626,7 +622,7 @@ export function WorkflowOutputNode(props: NodeProps<AppNode>) {
                       aria-label="Select a field"
                       aria-expanded={menuOpen}
                       onClick={() => setMenuOpen((value) => !value)}
-                      className={`${MENU_BUTTON} text-gray-400`}
+                      className={`${FIELD_MENU} text-gray-400`}
                     >
                       <span>Select a Field...</span>
                       <UiIcon name="chevron-down" className="text-xs text-gray-400 opacity-75" />
@@ -666,9 +662,9 @@ export function WorkflowOutputNode(props: NodeProps<AppNode>) {
               type="button"
               aria-label="Add output"
               onClick={() => setFormOpen(true)}
-              className="h-[32px] min-h-[32px] w-full rounded-lg border border-gray-300 bg-white px-2.5 text-xs font-medium text-gray-700 transition-colors hover:border-gray-400 hover:bg-gray-50"
+              className={FIELD_ACTION}
             >
-              <UiIcon name="plus" className="mr-1 inline-block text-xs" />
+              <UiIcon name="plus" className="text-xs" />
               <span>Add Output</span>
             </button>
           )}

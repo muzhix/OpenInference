@@ -75,6 +75,21 @@ export function isImageInputType(type: string): boolean {
   return type === "WorkflowImage" || type === "InferenceImage";
 }
 
+/** Kind name a workflow input provides, used when matching selector fields. */
+export function inputKindName(type: string): string | null {
+  if (isImageInputType(type)) {
+    return "image";
+  }
+  if (type === "WorkflowVideo" || type === "InferenceVideo") {
+    return "video";
+  }
+  const dataMatch = /^WorkflowData\((.+)\)$/.exec(type);
+  if (dataMatch) {
+    return dataMatch[1]!;
+  }
+  return type || null;
+}
+
 /** Normalize steps (engine/cloud arrays or engine-internal record) to named entries. */
 export interface NamedStep {
   name: string;

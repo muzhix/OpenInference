@@ -7,6 +7,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+import { UiIcon } from "../canvas/hollowIcons";
 import { Badge } from "../ui/Badge";
 import type { WorkflowSummary } from "../../api/workflowApi";
 import type { WorkflowSpecification } from "../../types/spec";
@@ -69,11 +70,7 @@ export function WorkflowCard({
             setMenuOpen((open) => !open);
           }}
         >
-          <svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-            <circle cx="8" cy="3" r="1.4" />
-            <circle cx="8" cy="8" r="1.4" />
-            <circle cx="8" cy="13" r="1.4" />
-          </svg>
+          <UiIcon name="ellipsis" className="text-sm" />
         </button>
         {menuOpen ? <CardMenu onClose={() => setMenuOpen(false)} actions={actions} /> : null}
       </div>

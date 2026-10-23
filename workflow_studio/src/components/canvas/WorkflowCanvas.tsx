@@ -170,7 +170,7 @@ function CanvasInner() {
     // Clicks on controls INSIDE an open node (buttons, inputs, links) must not
     // collapse it — only clicks on the node body toggle open/closed.
     const target = event.target as Element;
-    if (target.closest("button, input, textarea, select, a, [role='button'], [role='switch'], [role='tooltip']")) {
+    if (target.closest("button, input, textarea, select, a, [role='button'], [role='switch'], [role='tooltip'], [data-node-overlay]")) {
       return;
     }
     const recent = lastToggleClick.current;

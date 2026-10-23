@@ -7,9 +7,11 @@ import { blockShortName } from "./category";
 import { edgeReferenceOf, OUTPUTS_NODE_ID, stepNodeId } from "./edges";
 import type { DisconnectibleEdge } from "./edges";
 import {
+  acceptedKindsForProperty,
   blockOutputs,
   findBlock,
   imageInputPropertyForBlock,
+  kindsMatch,
   selectorPropertiesForBlock,
 } from "./registryUtils";
 import {
@@ -22,7 +24,7 @@ import {
 
 import type { BlockDescriptor, BlockRegistry } from "../types/registry";
 import type { UiNote, UiPosition, WorkflowInputSpec, WorkflowSpecification, WorkflowStepSpec } from "../types/spec";
-import { isImageInputType, stepsToList } from "../types/spec";
+import { inputKindName, isImageInputType, stepsToList } from "../types/spec";
 
 function uniqueName(existing: Iterable<string>, base: string): string {
   const taken = new Set(existing);
@@ -201,20 +203,6 @@ interface ConnectionSource {
   kindName: string | null;
 }
 
-function inputKindName(type: string): string | null {
-  if (isImageInputType(type)) {
-    return "image";
-  }
-  if (type === "WorkflowVideo") {
-    return "video";
-  }
-  const dataMatch = /^WorkflowData\((.+)\)$/.exec(type);
-  if (dataMatch) {
-    return dataMatch[1]!;
-  }
-  return type || null;
-}
-
 /**
  * The reference a drag from `sourceNodeKey` carries: `$inputs.<name>` for the
  * inputs node (its single image-ish input, else the first declared input), or
@@ -284,37 +272,12 @@ function firstReferencedOutputName(spec: WorkflowSpecification, stepName: string
   return null;
 }
 
-/** Kind names under which the kinds_connections matrix binds `property` on the block. */
-function propertyKindNames(registry: BlockRegistry | null | undefined, manifestType: string, property: string): string[] {
-  if (!registry) {
-    return [];
-  }
-  const kinds: string[] = [];
-  for (const [kindName, entries] of Object.entries(registry.kinds_connections)) {
-    if (entries.some((entry) => entry.manifest_type_identifier === manifestType && entry.property_name === property)) {
-      kinds.push(kindName);
-    }
-  }
-  return kinds;
-}
-
-function kindMatches(required: string, provided: string): boolean {
-  if (required === provided) {
-    return true;
-  }
-  const wildcard = (pattern: string, value: string): boolean => pattern.endsWith("/*") && value.startsWith(pattern.slice(0, -1));
-  if (wildcard(required, provided) || wildcard(provided, required)) {
-    return true;
-  }
-  return required.split("/").pop() === provided.split("/").pop();
-}
-
 /** Compatible when either side is unknown, or the provided kind feeds a required kind. */
 function kindCompatible(requiredKinds: string[], provided: string | null): boolean {
   if (provided === null || requiredKinds.length === 0) {
     return true;
   }
-  return requiredKinds.some((kind) => kindMatches(kind, provided));
+  return requiredKinds.some((kind) => kindsMatch(kind, provided));
 }
 
 /**
@@ -390,7 +353,7 @@ export function connectNodes(
       if (!isUnsetValue(entry.step[candidate])) {
         return false;
       }
-      return kindCompatible(propertyKindNames(registry, entry.step.type, candidate), source.kindName);
+      return kindCompatible(acceptedKindsForProperty(registry, entry.step.type, candidate), source.kindName);
     }) ?? PRIMARY_IMAGE_PROPERTIES.find((candidate) => candidates.includes(candidate));
   if (!property) {
     return spec;

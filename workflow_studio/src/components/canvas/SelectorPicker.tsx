@@ -8,7 +8,7 @@
 
 import { useMemo, useState } from "react";
 
-import { blockSectionOf, faClasses, sectionMetaOf } from "../../adapter";
+import { blockSectionOf, downstreamNodeIds, faClasses, sectionMetaOf } from "../../adapter";
 import { acceptedKindsForProperty, kindsMatch } from "../../adapter/registryUtils";
 import { UiIcon, inputTypeIconName } from "./hollowIcons";
 import { FIELD_ACTION } from "./nodes/shared";
@@ -63,10 +63,10 @@ function outputKinds(output: OutputManifestEntry): string[] {
 }
 
 /**
- * Sources that can feed `property` on `stepName`. The step's own outputs are
- * omitted. When the registry names the field's kinds, only matching sources
- * are listed; an image-named field still filters to image when that matrix
- * row is missing.
+ * Sources that can feed `property` on `stepName`. The step's own outputs and
+ * anything downstream of it are omitted. When the registry names the field's
+ * kinds, only matching sources are listed; an image-named field still filters
+ * to image when that matrix row is missing.
  */
 export function buildSelectorGroups(
   spec: WorkflowSpecification | null | undefined,
@@ -78,6 +78,7 @@ export function buildSelectorGroups(
   const stepType = stepsToList(spec?.steps ?? []).find((entry) => entry.name === stepName)?.step.type;
   const declared = stepType ? acceptedKindsForProperty(registry, stepType, property) : [];
   const accepted = declared.length > 0 || !property.toLowerCase().includes("image") ? declared : ["image"];
+  const hiddenSources = spec ? downstreamNodeIds(spec, `$steps.${stepName}`) : new Set<string>();
   const result: SelectorGroup[] = [];
 
   const inputRows: SourceRow[] = [];
@@ -98,7 +99,7 @@ export function buildSelectorGroups(
   }
 
   for (const { name, step } of stepsToList(spec?.steps ?? [])) {
-    if (name === stepName) {
+    if (hiddenSources.has(`$steps.${name}`)) {
       continue;
     }
     const block = blocksByType.get(step.type);

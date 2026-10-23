@@ -39,10 +39,8 @@ describe("specToGraph", () => {
     expect(edges.map((edge) => edge.id).sort()).toEqual(
       [
         "$inputs~image~$steps.detection~images",
-        "$inputs~image~$steps.label_visualization~image",
         "$steps.detection~predictions~$steps.label_visualization~predictions",
         "$steps.label_visualization~image~$outputs~output_image",
-        "$steps.detection~predictions~$outputs~detection_count",
       ].sort(),
     );
     // Node-level handles (cloud builder): bottom "out" on the source, top "in"
@@ -55,12 +53,12 @@ describe("specToGraph", () => {
       targetHandle: "in",
       data: { sourceOutput: "image", targetInput: "images" },
     });
-    const outputEdge = edges.find((edge) => edge.id === "$steps.detection~predictions~$outputs~detection_count");
+    const outputEdge = edges.find((edge) => edge.id === "$steps.label_visualization~image~$outputs~output_image");
     expect(outputEdge).toMatchObject({
       sourceHandle: "out",
       target: "$outputs",
       targetHandle: "in",
-      data: { sourceOutput: "predictions", targetInput: "detection_count" },
+      data: { sourceOutput: "image", targetInput: "output_image" },
     });
   });
 

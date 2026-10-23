@@ -91,7 +91,7 @@ export function WorkflowStepNode(props: NodeProps<AppNode>) {
         </AdditionalPropertiesPanel>
       ) : null}
       <div
-        className="graphBlock relative z-10 flex-1 rounded-lg border bg-white py-3 pl-4 pr-3 shadow-sm transition-shadow hover:shadow-md"
+        className="graphBlock relative z-10 min-w-0 flex-1 rounded-lg border bg-white py-3 pl-4 pr-3 shadow-sm transition-shadow hover:shadow-md"
         style={{
           borderStyle: "solid",
           borderTopWidth: edgeWidth,

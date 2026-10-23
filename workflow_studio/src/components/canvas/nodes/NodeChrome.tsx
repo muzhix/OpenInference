@@ -7,7 +7,7 @@
 
 import { useState } from "react";
 
-import { blockSectionOf, blockShortName, canonicalOutputSelector, faClasses, sectionMetaOf } from "../../../adapter";
+import { blockSectionOf, blockShortName, canonicalOutputSelector, downstreamNodeIds, faClasses, sectionMetaOf } from "../../../adapter";
 import { UiIcon, inputTypeIconName, outputFieldIconName } from "../hollowIcons";
 import { useEditorStore } from "../../../state/editorStore";
 import { useRegistryStore } from "../../../state/registryStore";
@@ -212,11 +212,13 @@ function TrayCard({
 
 /**
  * Side tray shown next to an open node: producers grouped by node (their
- * outputs as draggable chips) above, the node's own outputs below. The Inputs
- * node has no upstream producers, so it passes showProducers={false} and shows
- * only its Output summary card (observed official behavior). The tray stretches
- * the full node height (`inset-y-0`) so the Output card's bottom edge lines up
- * with the node.
+ * outputs as draggable chips) above, the node's own outputs below. Producers
+ * are workflow inputs, ancestors, and blocks that do not sit downstream —
+ * a successor's outputs are not sources. The Inputs node has no upstream
+ * producers, so it passes showProducers={false} and shows only its Output
+ * summary card. The tray is `left-full` with a fixed margin so it sits clear
+ * of the block, and stretches the node height so the Output card's bottom
+ * edge lines up with the node.
  */
 export function NodeTrays({ nodeId, showProducers = true }: { nodeId: string; showProducers?: boolean }) {
   const spec = useEditorStore((state) => state.spec);
@@ -237,15 +239,18 @@ export function NodeTrays({ nodeId, showProducers = true }: { nodeId: string; sh
     icon: <UiIcon name={outputFieldIconName(name, kindName)} className="text-xs" />,
   });
 
+  const hiddenSources = downstreamNodeIds(spec, nodeId);
   const producers: { nodeId: string; label: string; icon: React.ReactNode; section?: string; outputs: { name: string; icon: React.ReactNode }[] }[] = [];
-  producers.push({
-    nodeId: "$inputs",
-    label: "inputs",
-    icon: <UiIcon name="arrow-down-to-line" className="text-xs" />,
-    outputs: (spec.inputs ?? []).map((input) => ({ name: input.name, icon: <UiIcon name={inputTypeIconName(input.type)} className="text-xs" /> })),
-  });
+  if (!hiddenSources.has("$inputs")) {
+    producers.push({
+      nodeId: "$inputs",
+      label: "inputs",
+      icon: <UiIcon name="arrow-down-to-line" className="text-xs" />,
+      outputs: (spec.inputs ?? []).map((input) => ({ name: input.name, icon: <UiIcon name={inputTypeIconName(input.type)} className="text-xs" /> })),
+    });
+  }
   for (const { name, step } of entries) {
-    if (name === selfName) {
+    if (hiddenSources.has(`$steps.${name}`)) {
       continue;
     }
     const block = blocksByType.get(step.type);
@@ -288,8 +293,8 @@ export function NodeTrays({ nodeId, showProducers = true }: { nodeId: string; sh
 
   return (
     <div
-      className={`pointer-events-none absolute inset-y-0 right-0 flex translate-x-full flex-col ${
-        showProducers ? "justify-between pl-3" : "justify-end pl-8"
+      className={`pointer-events-none absolute inset-y-0 left-full flex flex-col ${
+        showProducers ? "ml-3 justify-between" : "ml-8 justify-end"
       }`}
     >
       {showProducers ? (

@@ -1,6 +1,6 @@
 /** Rebuild metadata.ui for persistence: positions + UI edge projection. */
 
-import { deriveEdges } from "./edges";
+import { flowEdges } from "./edges";
 
 import type { UiEdgeProjection, UiPosition, WorkflowSpecification } from "../types/spec";
 
@@ -8,8 +8,8 @@ const NODE_KEY_RE = /^\$(?:inputs|outputs)$|^\$steps\.[^.]+$/;
 
 /**
  * Produce a spec whose metadata.ui is rebuilt: nodes = supplied positions
- * (falling back to the spec's stored positions), edges = UI projection of the
- * semantic references, groups/notes/disabled preserved. The semantic parts
+ * (falling back to the spec's stored positions), edges = the same reduced
+ * flow the canvas draws, groups/notes/disabled preserved. The semantic parts
  * (inputs/steps/outputs) are passed through unchanged.
  */
 export function exportSpec(
@@ -27,7 +27,7 @@ export function exportSpec(
     }
   }
 
-  const edges: UiEdgeProjection[] = deriveEdges(spec).map((edge) => ({
+  const edges: UiEdgeProjection[] = flowEdges(spec).map((edge) => ({
     source: edge.source,
     target: edge.target,
     inputProperty: edge.targetInput,

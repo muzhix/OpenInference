@@ -2,7 +2,7 @@
 
 import dagre from "@dagrejs/dagre";
 
-import { deriveEdges } from "./edges";
+import { flowEdges } from "./edges";
 
 import type { UiPosition, WorkflowSpecification } from "../types/spec";
 import { stepsToList } from "../types/spec";
@@ -74,7 +74,7 @@ export function computeAutoLayout(
     const size = sizeForNodeId(id, spec);
     graph.setNode(id, size);
   }
-  for (const edge of deriveEdges(spec)) {
+  for (const edge of flowEdges(spec)) {
     if (ids.has(edge.source) && ids.has(edge.target)) {
       graph.setEdge(edge.source, edge.target);
     }

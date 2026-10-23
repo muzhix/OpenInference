@@ -257,10 +257,10 @@ describe("disconnectEdge (edge removal -> unbinding)", () => {
 
   it("removes the outputs row for an edge into $outputs", () => {
     const { edges } = specToGraph(SAMPLE_SPEC, registry);
-    const edge = edges.find((item) => item.id === "$steps.detection~predictions~$outputs~detection_count");
+    const edge = edges.find((item) => item.id === "$steps.label_visualization~image~$outputs~output_image");
     expect(edge).toBeDefined();
     const next = disconnectEdge(SAMPLE_SPEC, edge!);
-    expect(next.outputs?.map((output) => output.name)).toEqual(["output_image"]);
+    expect(next.outputs?.map((output) => output.name)).toEqual(["detection_count"]);
   });
 
   it("falls back to parsing the edge id when data is missing", () => {

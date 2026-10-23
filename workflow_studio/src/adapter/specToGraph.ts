@@ -1,6 +1,7 @@
 /**
  * spec -> React Flow graph. The spec is the single source of truth; nodes and
- * edges are fully derived (03 §1, 04 §1). Node ids: "$inputs",
+ * edges are the transitive reduction of selector references (03 §1, 04 §1).
+ * Node ids: "$inputs",
  * "$steps.<name>", "$outputs", "note:<id>". Edge ids:
  * `${source}~${out}~${target}~${in}`. Handles are node-level (cloud builder):
  * source = bottom "out", target = top "in"; the per-reference detail rides in
@@ -11,7 +12,7 @@ import { MarkerType } from "@xyflow/react";
 import type { Edge, Node } from "@xyflow/react";
 
 import { blockSectionOf } from "./category";
-import { deriveEdges, makeEdgeId, SOURCE_HANDLE_ID, TARGET_HANDLE_ID } from "./edges";
+import { flowEdges, makeEdgeId, SOURCE_HANDLE_ID, TARGET_HANDLE_ID } from "./edges";
 import type { AppEdgeData } from "./edges";
 import { computeAutoLayout } from "./layout";
 import { collectSelectorStrings } from "./selectors";
@@ -155,7 +156,7 @@ export function specToGraph(spec: WorkflowSpecification, registry?: BlockRegistr
     })),
   ];
 
-  const edges: AppEdge[] = deriveEdges(spec).map((edge) => ({
+  const edges: AppEdge[] = flowEdges(spec).map((edge) => ({
     id: makeEdgeId(edge),
     source: edge.source,
     sourceHandle: SOURCE_HANDLE_ID,

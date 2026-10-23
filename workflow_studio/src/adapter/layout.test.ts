@@ -24,8 +24,9 @@ describe("computeAutoLayout (top to bottom)", () => {
   it("flows inputs at the top, steps below along selector edges, outputs at the bottom", () => {
     const positions = computeAutoLayout(bareSpec(), IDS);
 
-    // $inputs feeds detection (via images), detection feeds label_visualization
-    // (via predictions), and both feed the outputs node.
+    // Reduced flow is a chain: inputs → detection → label_visualization → outputs.
+    // label_visualization still reads $inputs.image, and outputs still reads
+    // detection.predictions, without extra lines.
     expect(positions.$inputs!.y).toBeLessThan(positions["$steps.detection"]!.y);
     expect(positions["$steps.detection"]!.y).toBeLessThan(positions["$steps.label_visualization"]!.y);
     expect(positions.$outputs!.y).toBeGreaterThanOrEqual(positions["$steps.label_visualization"]!.y);
@@ -42,6 +43,42 @@ describe("computeAutoLayout (top to bottom)", () => {
 
   it("is deterministic", () => {
     expect(computeAutoLayout(bareSpec(), IDS)).toEqual(computeAutoLayout(bareSpec(), IDS));
+  });
+
+  it("stacks a chain in one column when later steps also read earlier ancestors", () => {
+    const spec: WorkflowSpecification = {
+      version: "1.0",
+      inputs: [{ type: "WorkflowImage", name: "image" }],
+      steps: [
+        { type: "roboflow_core/roboflow_object_detection@v2", name: "model", images: "$inputs.image" },
+        {
+          type: "roboflow_core/bounding_box_visualization@v1",
+          name: "bounding_box_visualization",
+          image: "$inputs.image",
+          predictions: "$steps.model.predictions",
+        },
+        {
+          type: "roboflow_core/label_visualization@v1",
+          name: "label_visualization",
+          image: "$steps.bounding_box_visualization.image",
+          predictions: "$steps.model.predictions",
+        },
+      ],
+      outputs: [{ type: "JsonField", name: "output_image", selector: "$steps.label_visualization.image" }],
+    };
+    const ids = [
+      "$inputs",
+      "$steps.model",
+      "$steps.bounding_box_visualization",
+      "$steps.label_visualization",
+      "$outputs",
+    ];
+    const positions = computeAutoLayout(spec, ids);
+    expect(new Set(ids.map((id) => positions[id]!.x)).size).toBe(1);
+    expect(positions.$inputs!.y).toBeLessThan(positions["$steps.model"]!.y);
+    expect(positions["$steps.model"]!.y).toBeLessThan(positions["$steps.bounding_box_visualization"]!.y);
+    expect(positions["$steps.bounding_box_visualization"]!.y).toBeLessThan(positions["$steps.label_visualization"]!.y);
+    expect(positions["$steps.label_visualization"]!.y).toBeLessThan(positions.$outputs!.y);
   });
 
   it("leaves 1.5 step-cards of space between stacked step nodes", () => {

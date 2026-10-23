@@ -73,6 +73,16 @@ describe("buildSelectorGroups", () => {
     expect(selectors(steps, "images", "next")).toEqual(["$inputs.image", "$steps.crop.image"]);
   });
 
+  it("omits a successor visualization from an upstream step's image field", () => {
+    const steps: WorkflowStepSpec[] = [
+      { type: DETECTION, name: "model", images: "$inputs.image" },
+      { type: CROP, name: "boxes", image: "$inputs.image", predictions: "$steps.model.predictions" },
+      { type: CROP, name: "labels", image: "$steps.boxes.image" },
+    ];
+    expect(selectors(steps, "image", "boxes")).toEqual(["$inputs.image"]);
+    expect(selectors(steps, "image", "labels")).toEqual(["$inputs.image", "$steps.boxes.image"]);
+  });
+
   it("keeps a prediction output on a predictions field", () => {
     const steps: WorkflowStepSpec[] = [
       { type: DETECTION, name: "model" },

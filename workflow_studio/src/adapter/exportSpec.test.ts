@@ -26,19 +26,26 @@ describe("exportSpec round-trip", () => {
     // Previously-missing nodes now carry the auto-layout coordinates.
     expect(exported.metadata?.ui?.nodes?.["$outputs"]).toBeDefined();
 
-    const edgeProjections = exported.metadata?.ui?.edges ?? [];
-    expect(edgeProjections).toContainEqual({
-      source: "$inputs",
-      target: "$steps.detection",
-      inputProperty: "images",
-      sourceSelector: "image",
-    });
-    expect(edgeProjections).toContainEqual({
-      source: "$steps.detection",
-      target: "$outputs",
-      inputProperty: "detection_count",
-      sourceSelector: "predictions",
-    });
+    expect(exported.metadata?.ui?.edges).toEqual([
+      {
+        source: "$inputs",
+        target: "$steps.detection",
+        inputProperty: "images",
+        sourceSelector: "image",
+      },
+      {
+        source: "$steps.detection",
+        target: "$steps.label_visualization",
+        inputProperty: "predictions",
+        sourceSelector: "predictions",
+      },
+      {
+        source: "$steps.label_visualization",
+        target: "$outputs",
+        inputProperty: "output_image",
+        sourceSelector: "image",
+      },
+    ]);
     expect(exported.metadata?.ui?.groups).toEqual([]);
   });
 

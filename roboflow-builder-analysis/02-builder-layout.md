@@ -42,7 +42,8 @@ Run 面板展开时:画布右侧让出 ~639px 给结果/输入面板
 
 - 浮层(非停靠侧栏):搜索框(placeholder `Search workflow blocks`)+ 筛选 pill `All` / `Custom` + 分类列表 + 底部链接 `View All Blocks`。
 - 结构:`blockSection > blockSectionHeader`(颜色主题类如 yellow,cursor-pointer,点击展开)→ `blockListItem group cursor-move <color>`(block 卡片)。
-- 实测分类:Model、Visualization、Logic and Branching、Data Storage、Notification、Video(截断,以注册表为准)。
+- 实测一级分类共 **11 个**(2026-10-23 全量库复核;2026-10-21 首次观测时尾部被截断,曾误记为 9):Model、Visualization、Logic and Branching、Data Storage、Notification、Video、Transformation、Classical Computer Vision、Advanced、**Industrial Integration**(工业协议/企业块)、**Custom**(Custom Python Block + Detection Event Log + Overlap Analysis)。
+- `View All Blocks` 在面板原位切换为全量库视图(顶部 `Back` 返回):长列表按 11 分类分组,卡片带 `Popular` / `Needs GPU` / `In-Development` / `DEPRECATED!` 徽章;VLM as Detector、VLM as Classifier、Seg Preview、PLC ModbusTCP、PLC EthernetIP 无卡片(官方隐藏);`Project Model`、`Set Stream Camera Parameters` 为云端独有卡片。
 - 交互:点击 blockListItem → 画布添加节点(纯前端);搜索过滤生效(输入 "property" → 仅 Property Definition + "Popular" 标签)。
 
 ## 6. Run 面板与聊天面板

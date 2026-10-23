@@ -39,7 +39,8 @@ test.describe("Publish and Use", () => {
     await stepNode.dblclick();
     // Optional fields hide behind the additional-properties toggle (cloud rule).
     await stepNode.getByRole("button", { name: "Show additional properties" }).click();
-    await stepNode.getByLabel("Contrast Multiplier").fill("2.5");
+    // Exact: the stepper buttons carry Increase/Decrease Contrast Multiplier labels.
+    await stepNode.getByLabel("Contrast Multiplier", { exact: true }).fill("2.5");
     const saveButton = page.getByRole("button", { name: "Save workflow draft" });
     await expect(saveButton).not.toHaveAttribute("aria-disabled", "true");
     await saveButton.click();

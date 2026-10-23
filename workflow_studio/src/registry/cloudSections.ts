@@ -1,11 +1,14 @@
 // AUTO-GENERATED from the intersection of the local roboflow_workflows registry
 // (250 blocks) and the observed Roboflow cloud registry (263 blocks).
 // Sections and priorities come from the CLOUD ui_manifest, matching the
-// official Roboflow builder palette. Labels, one-line descriptions, icons and
-// the category order for the nine builder categories were captured from the
-// live palette (REA observation, 2026-10-21); the three tail sections
-// (analytics, fusion, formatter) do not appear in the official level-1 list
-// and carry our own copy. Do not edit CLOUD_BLOCKS by hand.
+// official Roboflow builder palette. Labels, one-line descriptions, icons,
+// colors/tints and the category order for the ELEVEN builder categories were
+// captured from the live palette and its "View All Blocks" full library
+// (REA observation, 2026-10-23). The full library places Detection Event Log
+// and Overlap Analysis in the Custom category; VLM as Detector, VLM as
+// Classifier and Seg Preview have no card at all, so those families stay out
+// of CLOUD_BLOCKS (palette-only hiding — the blocks still run). Do not edit
+// CLOUD_BLOCKS by hand.
 
 export interface CloudSectionDef {
   section: string;
@@ -33,7 +36,7 @@ export const CLOUD_SECTIONS: CloudSectionDef[] = [
   {
     section: "visualization",
     label: "Visualization",
-    color: "#2563EB",
+    color: "#3B82F6",
     tint: "#EFF6FF",
     description: "Visualize the output of a model.",
     icon: "far fa-object-group",
@@ -41,7 +44,7 @@ export const CLOUD_SECTIONS: CloudSectionDef[] = [
   {
     section: "flow_control",
     label: "Logic and Branching",
-    color: "#F59E0B",
+    color: "#D97706",
     tint: "#FFFBEB",
     description: "Control the flow of your workflow.",
     icon: "far fa-code-branch",
@@ -49,75 +52,66 @@ export const CLOUD_SECTIONS: CloudSectionDef[] = [
   {
     section: "data_storage",
     label: "Data Storage",
-    color: "#F43F5E",
-    tint: "#FFF1F2",
+    color: "#EC4899",
+    tint: "#FDF2F8",
     description: "Save data in a Roboflow dataset or an external database.",
     icon: "far fa-database",
   },
   {
     section: "notifications",
     label: "Notification",
-    color: "#FBBF24",
-    tint: "#FFFBEB",
+    color: "#FB9374",
+    tint: "#FFF4F1",
     description: "Send an alert, such as an SMS message or email.",
     icon: "far fa-bell",
   },
   {
     section: "video",
     label: "Video",
-    color: "#7C3AED",
-    tint: "#F5F3FF",
+    color: "#6366F1",
+    tint: "#EEF2FF",
     description: "Perform stateful video analysis, such as tracking unique objects, time in zone, and line crossing.",
     icon: "far fa-video",
   },
   {
     section: "transformation",
     label: "Transformation",
-    color: "#EA580C",
-    tint: "#FFF7ED",
+    color: "#10B981",
+    tint: "#ECFDF5",
     description: "Manipulate image and prediction data, such as cropping, stitching images, and offsetting predictions.",
     icon: "far fa-crop-alt",
   },
   {
     section: "classical_cv",
     label: "Classical Computer Vision",
-    color: "#0D9488",
-    tint: "#F0FDFA",
+    color: "#06B6D4",
+    tint: "#ECFEFF",
     description: "Perform classical computer vision tasks, such as edge detection, template matching, and size measurement.",
     icon: "far fa-aperture",
   },
   {
     section: "advanced",
     label: "Advanced",
-    color: "#6B7280",
-    tint: "#F3F4F6",
+    color: "#F97316",
+    tint: "#FFF7ED",
     description: "Leverage advanced features, such as pass/fail logic, data caching, and embedding similarity.",
     icon: "far fa-network-wired",
   },
-  // Not present in the official level-1 category list; copy below is ours.
   {
-    section: "analytics",
-    label: "Analytics",
-    color: "#0891B2",
-    tint: "#ECFEFF",
-    description: "Analyze detection events over time.",
-    icon: "far fa-chart-line",
+    section: "industrial",
+    label: "Industrial Integration",
+    color: "#6B7280",
+    tint: "#FAFAFB",
+    description: "Connect to industrial systems, PLCs, and IoT protocols for factory automation.",
+    icon: "far fa-industry",
   },
   {
-    section: "fusion",
-    label: "Fusion",
-    color: "#059669",
-    tint: "#ECFDF5",
-    description: "Combine predictions from multiple sources.",
-    icon: "far fa-object-union",
-  },
-  {
-    section: "formatter",
-    label: "Formatter",
-    color: "#475569",
-    tint: "#F8FAFC",
-    description: "Reformat model outputs for downstream blocks.",
-    icon: "far fa-file-code",
+    section: "custom",
+    label: "Custom",
+    color: "#795548",
+    tint: "#F2EBE8",
+    description: "Create custom blocks to perform any task that our default blocks don't support.",
+    icon: "far fa-code",
   },
 ];
 
@@ -173,7 +167,7 @@ export const CLOUD_BLOCKS: Record<string, CloudBlockMeta> = {
   "roboflow_core/data_aggregator@v1": { section: "data_storage", priority: 4 },
   "roboflow_core/delta_filter@v1": { section: "flow_control", priority: 3 },
   "roboflow_core/depth_estimation@v1": { section: "model", priority: 5.5 },
-  "roboflow_core/detection_event_log@v1": { section: "analytics", priority: 3 },
+  "roboflow_core/detection_event_log@v1": { section: "custom", priority: 3 },
   "roboflow_core/detection_offset@v1": { section: "transformation", priority: 3 },
   "roboflow_core/detections_classes_replacement@v1": { section: "advanced", priority: 5 },
   "roboflow_core/detections_combine@v1": { section: "transformation", priority: 5 },
@@ -271,7 +265,7 @@ export const CLOUD_BLOCKS: Record<string, CloudBlockMeta> = {
   "roboflow_core/openrouter@v2": { section: "model", priority: 5.6 },
   "roboflow_core/openrouter@v3": { section: "model", priority: 5.6 },
   "roboflow_core/overlap@v1": { section: "flow_control", priority: 1.5 },
-  "roboflow_core/overlap_analysis@v1": { section: "fusion", priority: 50 },
+  "roboflow_core/overlap_analysis@v1": { section: "custom", priority: 50 },
   "roboflow_core/path_deviation_analytics@v1": { section: "video", priority: 50 },
   "roboflow_core/path_deviation_analytics@v2": { section: "video", priority: 3 },
   "roboflow_core/per_class_confidence_filter@v1": { section: "flow_control", priority: 2 },
@@ -329,7 +323,6 @@ export const CLOUD_BLOCKS: Record<string, CloudBlockMeta> = {
   "roboflow_core/sam3@v3": { section: "model", priority: 9.48 },
   "roboflow_core/sam3_interactive@v1": { section: "model", priority: 9.47 },
   "roboflow_core/sam3_video@v1": { section: "video", priority: 9.39 },
-  "roboflow_core/seg-preview@v1": { section: "model", priority: 9.49 },
   "roboflow_core/segment_anything@v1": { section: "model", priority: 9.5 },
   "roboflow_core/segment_anything_2_video@v1": { section: "video", priority: 9.4 },
   "roboflow_core/sift@v1": { section: "classical_cv", priority: 4 },
@@ -369,10 +362,6 @@ export const CLOUD_BLOCKS: Record<string, CloudBlockMeta> = {
   "roboflow_core/vision_event_bundle@v1": { section: "data_storage", priority: 2 },
   "roboflow_core/visual_search@v1": { section: "advanced", priority: 1 },
   "roboflow_core/visual_search_classifier@v1": { section: "model", priority: 4 },
-  "roboflow_core/vlm_as_classifier@v1": { section: "advanced", priority: 5 },
-  "roboflow_core/vlm_as_classifier@v2": { section: "advanced", priority: 5 },
-  "roboflow_core/vlm_as_detector@v1": { section: "formatter", priority: 50 },
-  "roboflow_core/vlm_as_detector@v2": { section: "advanced", priority: 5 },
   "roboflow_core/webhook_sink@v1": { section: "data_storage", priority: 1 },
   "roboflow_core/yolo_world_model@v1": { section: "model", priority: 8 },
   "roboflow_core/zai_vlm@v1": { section: "model", priority: 5.56 },

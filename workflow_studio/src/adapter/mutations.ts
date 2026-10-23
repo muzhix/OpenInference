@@ -4,9 +4,10 @@
  */
 
 import { blockShortName } from "./category";
-import { edgeReferenceOf, OUTPUTS_NODE_ID, stepNodeId } from "./edges";
-import type { DisconnectibleEdge } from "./edges";
+import { deriveEdges, edgeReferenceOf, INPUTS_NODE_ID, OUTPUTS_NODE_ID, stepNodeId } from "./edges";
+import type { AppEdgeData, DerivedEdge, DisconnectibleEdge } from "./edges";
 import {
+  HEURISTIC_SELECTOR_PROPERTIES,
   acceptedKindsForProperty,
   blockOutputs,
   findBlock,
@@ -22,7 +23,7 @@ import {
   canonicalOutputSelector,
 } from "./selectors";
 
-import type { BlockDescriptor, BlockRegistry } from "../types/registry";
+import type { BlockDescriptor, BlockRegistry, OutputManifestEntry } from "../types/registry";
 import type { UiNote, UiPosition, WorkflowInputSpec, WorkflowSpecification, WorkflowStepSpec } from "../types/spec";
 import { inputKindName, isImageInputType, stepsToList } from "../types/spec";
 
@@ -361,6 +362,22 @@ export function connectNodes(
   return setParam(spec, targetName, property, source.selector);
 }
 
+/**
+ * Drop every reference drawn as one visual connection. A grouped edge carries
+ * `data.bindings`; a single reference falls through to `disconnectEdge`.
+ */
+export function disconnectConnection(spec: WorkflowSpecification, edge: DisconnectibleEdge): WorkflowSpecification {
+  const data = (edge.data ?? null) as AppEdgeData | null;
+  const bindings = data?.bindings ?? [];
+  if (bindings.length === 0) {
+    return disconnectEdge(spec, edge);
+  }
+  return bindings.reduce(
+    (acc, binding) => disconnectEdge(acc, { ...edge, data: { ...data, ...binding } }),
+    spec,
+  );
+}
+
 /** Remove the binding that produced a rendered edge: clear the step property holding the reference, or drop the outputs[] row. */
 export function disconnectEdge(spec: WorkflowSpecification, edge: DisconnectibleEdge): WorkflowSpecification {
   const reference = edgeReferenceOf(edge);
@@ -374,6 +391,139 @@ export function disconnectEdge(spec: WorkflowSpecification, edge: Disconnectible
     return setParam(spec, reference.target.slice("$steps.".length), reference.targetInput, undefined);
   }
   return spec;
+}
+
+/** Geometry for inserting a block on the connection between two nodes. */
+export interface InsertSlot {
+  sourceId: string;
+  targetId: string;
+  position: UiPosition;
+  /** Existing nodes moved down so the new card keeps a one-card gap. */
+  shiftedPositions: Record<string, UiPosition>;
+}
+
+/**
+ * Insert a block on the connection `sourceId → targetId`. That connection is
+ * replaced: the new block is fed by the selectors that used to arrive on the
+ * edge, and every downstream field on the edge is retargeted at the new block.
+ */
+export function spliceBlock(
+  spec: WorkflowSpecification,
+  manifestType: string,
+  slot: InsertSlot,
+  registry?: BlockRegistry | null,
+): WorkflowSpecification {
+  const bindings = deriveEdges(spec).filter(
+    (edge) => edge.source === slot.sourceId && edge.target === slot.targetId,
+  );
+  let next = applyNodePositions(spec, slot.shiftedPositions);
+  const stepName = generateStepName(next, manifestType);
+  next = addStep(next, manifestType, stepName, slot.position, registry);
+  next = feedInsertedStep(next, stepName, manifestType, bindings, slot.sourceId, registry);
+  return rebindPastInsert(next, stepName, manifestType, bindings, registry);
+}
+
+function bindingSelector(edge: DerivedEdge): string {
+  if (edge.source === INPUTS_NODE_ID) {
+    return `$inputs.${edge.sourceOutput}`;
+  }
+  return `${edge.source}.${edge.sourceOutput}`;
+}
+
+/** Copy this edge's selectors onto matching inputs of the inserted step. */
+function stepAcceptsSelector(
+  registry: BlockRegistry | null | undefined,
+  manifestType: string,
+  property: string,
+): boolean {
+  if (acceptedKindsForProperty(registry, manifestType, property).length > 0) {
+    return true;
+  }
+  const properties = findBlock(registry, manifestType)?.block_schema?.properties ?? {};
+  return property in properties && HEURISTIC_SELECTOR_PROPERTIES.has(property);
+}
+
+function feedInsertedStep(
+  spec: WorkflowSpecification,
+  stepName: string,
+  manifestType: string,
+  bindings: DerivedEdge[],
+  sourceId: string,
+  registry?: BlockRegistry | null,
+): WorkflowSpecification {
+  let next = spec;
+  let fed = false;
+  for (const binding of bindings) {
+    const property = stepAcceptsSelector(registry, manifestType, binding.targetInput)
+      ? binding.targetInput
+      : stepAcceptsSelector(registry, manifestType, binding.sourceOutput)
+        ? binding.sourceOutput
+        : null;
+    if (!property) {
+      continue;
+    }
+    next = setParam(next, stepName, property, bindingSelector(binding));
+    fed = true;
+  }
+  if (!fed) {
+    return connectNodes(next, sourceId, stepNodeId(stepName), registry);
+  }
+  return next;
+}
+
+/**
+ * Output the inserted block should publish into one severed binding.
+ * Prefer the original output or field name, then a kind-compatible output,
+ * then the block's first output so the downstream node stays connected.
+ */
+function insertedOutputFor(
+  spec: WorkflowSpecification,
+  outputs: OutputManifestEntry[],
+  binding: DerivedEdge,
+  registry?: BlockRegistry | null,
+): OutputManifestEntry | undefined {
+  const named =
+    outputs.find((item) => item.name === binding.sourceOutput) ??
+    outputs.find((item) => item.name === binding.targetInput);
+  if (named) {
+    return named;
+  }
+  const targetName = binding.target.startsWith("$steps.") ? binding.target.slice("$steps.".length) : null;
+  const targetType = targetName
+    ? stepsToList(spec.steps).find((entry) => entry.name === targetName)?.step.type
+    : undefined;
+  const accepted = targetType ? acceptedKindsForProperty(registry, targetType, binding.targetInput) : [];
+  return outputs.find((output) => kindCompatible(accepted, output.kind[0]?.name ?? null)) ?? outputs[0];
+}
+
+/** Move every binding on the severed edge onto the inserted block. Nothing still points at the upstream node. */
+function rebindPastInsert(
+  spec: WorkflowSpecification,
+  stepName: string,
+  manifestType: string,
+  bindings: DerivedEdge[],
+  registry?: BlockRegistry | null,
+): WorkflowSpecification {
+  const outputs = blockOutputs(registry, manifestType);
+  let next = spec;
+  for (const binding of bindings) {
+    const output = insertedOutputFor(next, outputs, binding, registry);
+    if (!output) {
+      next = disconnectEdge(next, {
+        source: binding.source,
+        target: binding.target,
+        data: { sourceOutput: binding.sourceOutput, targetInput: binding.targetInput },
+      });
+      continue;
+    }
+    const selector = `$steps.${stepName}.${output.name}`;
+    if (binding.target === OUTPUTS_NODE_ID) {
+      next = setOutputSelector(next, binding.targetInput, selector);
+    } else if (binding.target.startsWith("$steps.")) {
+      next = setParam(next, binding.target.slice("$steps.".length), binding.targetInput, selector);
+    }
+  }
+  return next;
 }
 
 

@@ -56,7 +56,12 @@ export type NoteNodeData = {
   note: UiNote;
 };
 
-export type WorkflowNodeData = StepNodeData | InputNodeData | OutputNodeData | NoteNodeData;
+/** Transient card shown between two nodes while the user picks a block to insert. */
+export type InsertNodeData = {
+  kind: "insert";
+};
+
+export type WorkflowNodeData = StepNodeData | InputNodeData | OutputNodeData | NoteNodeData | InsertNodeData;
 export type AppNode = Node<WorkflowNodeData>;
 export type AppEdge = Edge<AppEdgeData>;
 
@@ -65,10 +70,10 @@ export interface DerivedGraph {
   edges: AppEdge[];
 }
 
-/** Official builder edges: 1px gray line with a closed gray arrowhead. */
-const DEFAULT_EDGE_STYLE = { stroke: "#B1B1B7", strokeWidth: 1 };
-const DANGLING_EDGE_STYLE = { stroke: "#DC2626", strokeDasharray: "6 3", strokeWidth: 1 };
-const EDGE_MARKER_END = { type: MarkerType.ArrowClosed, width: 14, height: 14, color: "#6B7280" };
+/** Gray connection. The canvas edge draws it as a flowing dash; the marker matches. */
+const DEFAULT_EDGE_STYLE = { stroke: "#C4C7CE", strokeWidth: 1.5 };
+const DANGLING_EDGE_STYLE = { stroke: "#DC2626", strokeWidth: 1.5 };
+const EDGE_MARKER_END = { type: MarkerType.ArrowClosed, width: 12, height: 12, color: "#B4B8C0" };
 
 export function specToGraph(spec: WorkflowSpecification, registry?: BlockRegistry | null): DerivedGraph {
   const storedPositions = spec.metadata?.ui?.nodes ?? {};

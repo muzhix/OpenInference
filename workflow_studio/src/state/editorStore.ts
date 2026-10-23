@@ -12,11 +12,11 @@ import {
   addNote,
   addBoundOutput,
   addStep,
+  spliceBlock,
   applyNodePositions,
   computeAutoLayout,
   exportSpec,
   graphNodeIds,
-  generateStepName,
   localValidate,
   removeNode,
   removeNote,
@@ -32,7 +32,7 @@ import {
   renameInput,
   renameOutput,
 } from "../adapter";
-import type { ValidationIssue } from "../adapter";
+import type { InsertSlot, ValidationIssue } from "../adapter";
 import { fetchGet, fetchSpec, parseConfig, saveDraft, saveWorkflow, validateSpec } from "../api/workflowApi";
 import type { WorkflowDetail } from "../api/workflowApi";
 
@@ -50,6 +50,8 @@ const SERVER_VALIDATION_DEBOUNCE_MS = 600;
 export interface PaletteState {
   flowX: number;
   flowY: number;
+  /** Edge insert opens the picker on the right; the canvas + button stays on the left. */
+  side?: "left" | "right";
 }
 
 interface EditorState {
@@ -77,6 +79,8 @@ interface EditorState {
   selectedNodeId: string | null;
   expandedNodeId: string | null;
   palette: PaletteState | null;
+  /** Block being inserted on a connection; the placeholder is not part of the spec. */
+  insertSlot: InsertSlot | null;
   runPanelOpen: boolean;
   livePositions: Record<string, UiPosition>;
   canvasLocked: boolean;
@@ -97,6 +101,7 @@ interface EditorState {
   setExpanded: (nodeId: string | null) => void;
   openPalette: (position?: PaletteState) => void;
   closePalette: () => void;
+  beginInsert: (slot: InsertSlot) => void;
   toggleRunPanel: () => void;
   setCanvasLocked: (locked: boolean) => void;
   toggleMinimap: () => void;
@@ -245,6 +250,7 @@ export const useEditorStore = create<EditorState>()((set, get) => ({
   selectedNodeId: null,
   expandedNodeId: null,
   palette: null,
+  insertSlot: null,
   runPanelOpen: false,
   livePositions: {},
   canvasLocked: false,
@@ -260,6 +266,7 @@ export const useEditorStore = create<EditorState>()((set, get) => ({
       selectedNodeId: null,
       expandedNodeId: null,
       palette: null,
+      insertSlot: null,
       runPanelOpen: false,
     });
     if (!url) {
@@ -373,16 +380,37 @@ export const useEditorStore = create<EditorState>()((set, get) => ({
     set({ expandedNodeId: nodeId, selectedNodeId: nodeId ?? get().selectedNodeId });
   },
 
-  openPalette: (position) => set({ palette: position }),
-  closePalette: () => set({ palette: null }),
+  openPalette: (position) => set({ palette: position, insertSlot: null }),
+  closePalette: () => set({ palette: null, insertSlot: null }),
+  beginInsert: (slot) => set({
+    insertSlot: slot,
+    palette: { flowX: slot.position.x, flowY: slot.position.y, side: "right" },
+    expandedNodeId: null,
+  }),
   toggleRunPanel: () => set({ runPanelOpen: !get().runPanelOpen }),
   setCanvasLocked: (locked) => set({ canvasLocked: locked }),
   toggleMinimap: () => set({ minimapVisible: !get().minimapVisible }),
   toggleAutoArrange: () => set({ autoArrange: !get().autoArrange }),
 
   addBlock: (manifestType) => {
-    const { palette, spec } = get();
+    const { palette, spec, insertSlot } = get();
     if (!spec) {
+      return;
+    }
+    const registry = useRegistryStore.getState().registry;
+    if (insertSlot) {
+      get().mutate((current) => {
+        const spliced = spliceBlock(
+          current,
+          manifestType,
+          get().autoArrange ? { ...insertSlot, shiftedPositions: {} } : insertSlot,
+          registry,
+        );
+        return get().autoArrange
+          ? applyNodePositions(spliced, computeAutoLayout(spliced, graphNodeIds(spliced)))
+          : spliced;
+      });
+      set({ palette: null, insertSlot: null, selectedNodeId: null, expandedNodeId: null });
       return;
     }
     // Place added blocks at the palette's anchor with a small cascade so
@@ -393,9 +421,8 @@ export const useEditorStore = create<EditorState>()((set, get) => ({
       x: base.flowX + (stepCount % 5) * 36,
       y: base.flowY + Math.floor(stepCount / 5) * 36,
     };
-    const name = generateStepName(spec, manifestType);
     get().mutate((current) => {
-      const withStep = addStep(current, manifestType, undefined, position, useRegistryStore.getState().registry);
+      const withStep = addStep(current, manifestType, undefined, position, registry);
       // Official "Arrange automatically": the re-arrange shares the add's
       // single undo step, and never fires for drags or sticky notes.
       return get().autoArrange

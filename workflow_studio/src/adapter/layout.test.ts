@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { computeAutoLayout } from "./layout";
+import { STEP_CARD_HEIGHT, computeAutoLayout, insertSlotGeometry } from "./layout";
 import { SAMPLE_SPEC } from "./testUtils";
 
 import type { WorkflowSpecification } from "../types/spec";
@@ -42,5 +42,37 @@ describe("computeAutoLayout (top to bottom)", () => {
 
   it("is deterministic", () => {
     expect(computeAutoLayout(bareSpec(), IDS)).toEqual(computeAutoLayout(bareSpec(), IDS));
+  });
+
+  it("leaves 1.5 step-cards of space between stacked step nodes", () => {
+    const spec: WorkflowSpecification = {
+      version: "1.0",
+      inputs: [],
+      steps: [
+        { type: "roboflow_core/roboflow_object_detection@v2", name: "a" },
+        { type: "roboflow_core/roboflow_label_visualization@v1", name: "b", image: "$steps.a.image" },
+      ],
+      outputs: [],
+    };
+    const positions = computeAutoLayout(spec, ["$steps.a", "$steps.b"]);
+    expect(positions["$steps.b"]!.y - positions["$steps.a"]!.y).toBe(STEP_CARD_HEIGHT * 2.5);
+  });
+});
+
+describe("insertSlotGeometry", () => {
+  it("opens a card-sized slot with a 1.5-card gap on either side", () => {
+    const slot = insertSlotGeometry({ x: 10, y: 0, height: STEP_CARD_HEIGHT }, STEP_CARD_HEIGHT * 2.5);
+    expect(slot).toEqual({
+      x: 10,
+      y: STEP_CARD_HEIGHT * 2.5,
+      minY: STEP_CARD_HEIGHT * 2.5,
+      dy: STEP_CARD_HEIGHT * 2.5,
+    });
+  });
+
+  it("does not pull a target upward when the gap is already large enough", () => {
+    const slot = insertSlotGeometry({ x: 0, y: 0, height: STEP_CARD_HEIGHT }, 400);
+    expect(slot.dy).toBe(0);
+    expect(slot.y).toBe(STEP_CARD_HEIGHT * 2.5);
   });
 });

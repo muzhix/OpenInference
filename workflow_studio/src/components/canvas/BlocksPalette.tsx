@@ -1,5 +1,7 @@
 /**
- * Blocks palette: the official builder's fixed left-side two-level popup.
+ * Blocks palette: the official builder's fixed two-level popup. The canvas
+ * + button anchors it on the left ("Workflow Blocks"). Inserting on a
+ * connection anchors it on the right ("Add Block", All / Custom).
  * Level 1 lists categories (icon + name + one-line description + chevron),
  * level 2 lists that category's blocks (icon + name + description + category
  * tag), the bottom "View All Blocks" link opens the flat list of every block,
@@ -26,12 +28,15 @@ export function BlocksPalette() {
   const registryStatus = useRegistryStore((state) => state.status);
   const [view, setView] = useState<PaletteView>({ kind: "categories" });
   const [query, setQuery] = useState("");
+  const [library, setLibrary] = useState<"all" | "custom">("all");
+  const side = palette?.side ?? "left";
 
   // Each reopen starts fresh at the category list (cloud behavior).
   useEffect(() => {
     if (palette) {
       setView({ kind: "categories" });
       setQuery("");
+      setLibrary("all");
     }
   }, [palette]);
 
@@ -39,15 +44,18 @@ export function BlocksPalette() {
     () => (registry ? buildPaletteSections(registry.blocks, query) : []),
     [registry, query],
   );
+  const listedSections = side === "right" && library === "custom"
+    ? sections.filter((section) => section.section === "custom")
+    : sections;
   const searching = query.trim().length > 0;
 
-  const activeSection = view.kind === "section" ? sections.find((section) => section.section === view.section) : undefined;
+  const activeSection = view.kind === "section" ? listedSections.find((section) => section.section === view.section) : undefined;
   const listedBlocks: { block: BlockDescriptor; section: string; showTag: boolean }[] = searching
-    ? sections.flatMap((section) => section.blocks.map((block) => ({ block, section: section.section, showTag: false })))
+    ? listedSections.flatMap((section) => section.blocks.map((block) => ({ block, section: section.section, showTag: false })))
     : view.kind === "section" && activeSection
       ? activeSection.blocks.map((block) => ({ block, section: activeSection.section, showTag: true }))
       : view.kind === "all"
-        ? sections.flatMap((section) => section.blocks.map((block) => ({ block, section: section.section, showTag: false })))
+        ? listedSections.flatMap((section) => section.blocks.map((block) => ({ block, section: section.section, showTag: false })))
         : [];
   const showBack = !searching && view.kind !== "categories";
   const showViewAll = !searching && view.kind !== "all";
@@ -58,12 +66,14 @@ export function BlocksPalette() {
 
   return (
     <div
-      className="absolute bottom-4 left-4 top-16 z-40 flex w-96 flex-col rounded-xl border border-gray-200 bg-white shadow-lg"
+      className={`absolute bottom-4 top-16 z-40 flex w-96 flex-col rounded-xl border border-gray-200 bg-white shadow-lg ${
+        side === "right" ? "right-4" : "left-4"
+      }`}
       role="dialog"
       aria-label="Blocks palette"
     >
       <div className="flex items-center justify-between gap-1 px-4 pb-2 pt-3">
-        <h2 className="text-base font-medium text-gray-800">Workflow Blocks</h2>
+        <h2 className="text-base font-medium text-gray-800">{side === "right" ? "Add Block" : "Workflow Blocks"}</h2>
         <button
           type="button"
           aria-label="Close blocks palette"
@@ -94,8 +104,38 @@ export function BlocksPalette() {
           className="w-full rounded border border-gray-300 px-3 py-2 text-sm text-gray-800 focus:border-blue-500 focus:outline-none"
         />
       </div>
-      <div className="relative min-h-0 flex-1">
-        <div className="h-full overflow-y-auto px-2 pb-1">
+      {side === "right" ? (
+        <div className="flex gap-1 px-4 pb-2">
+          <button
+            type="button"
+            aria-pressed={library === "all"}
+            onClick={() => {
+              setLibrary("all");
+              setView({ kind: "categories" });
+            }}
+            className={`rounded-md px-2.5 py-1 text-sm font-medium ${
+              library === "all" ? "bg-blue-50 text-blue-600" : "text-gray-500 hover:bg-gray-50"
+            }`}
+          >
+            All
+          </button>
+          <button
+            type="button"
+            aria-pressed={library === "custom"}
+            onClick={() => {
+              setLibrary("custom");
+              setView({ kind: "categories" });
+            }}
+            className={`rounded-md px-2.5 py-1 text-sm font-medium ${
+              library === "custom" ? "bg-blue-50 text-blue-600" : "text-gray-500 hover:bg-gray-50"
+            }`}
+          >
+            Custom
+          </button>
+        </div>
+      ) : null}
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-1">
           {showBack ? (
             <button
               type="button"
@@ -114,7 +154,7 @@ export function BlocksPalette() {
             <p className="px-2 py-4 text-xs text-danger">Failed to load the block registry.</p>
           ) : null}
           {registry && !searching && view.kind === "categories"
-            ? sections.map(({ section, meta }) => (
+            ? listedSections.map(({ section, meta }) => (
                 <CategoryRow key={section} section={section} onSelect={() => setView({ kind: "section", section })} />
               ))
             : null}
@@ -131,7 +171,7 @@ export function BlocksPalette() {
           <button
             type="button"
             onClick={() => setView({ kind: "all" })}
-            className="absolute bottom-0 left-0 right-0 flex cursor-pointer justify-center border-t border-gray-200 bg-white py-2.5 text-sm text-gray-600 transition-colors hover:bg-gray-100"
+            className="flex shrink-0 cursor-pointer justify-center border-t border-gray-200 bg-white py-2.5 text-sm text-gray-600 transition-colors hover:bg-gray-100"
           >
             View All Blocks
           </button>

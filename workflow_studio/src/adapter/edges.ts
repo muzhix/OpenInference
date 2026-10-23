@@ -16,10 +16,19 @@ export interface DerivedEdge {
   targetInput: string;
 }
 
+export interface EdgeBinding {
+  sourceOutput: string;
+  targetInput: string;
+}
+
 /** Data carried on rendered edges so deletions can be mapped back to the reference. */
 export interface AppEdgeData {
   sourceOutput: string;
   targetInput: string;
+  /** Every reference drawn as this one visual connection (same source and target). */
+  bindings?: EdgeBinding[];
+  /** Segment drawn only while a block is being inserted. No hover actions. */
+  inert?: boolean;
   [extra: string]: unknown;
 }
 

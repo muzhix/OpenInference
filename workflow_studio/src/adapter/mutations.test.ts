@@ -7,7 +7,9 @@ import {
   nextOutputName,
   addStep,
   connectNodes,
+  disconnectConnection,
   disconnectEdge,
+  spliceBlock,
   generateStepName,
   removeNode,
   removeOutput,
@@ -25,9 +27,11 @@ import {
   renameInput,
   renameOutput,
 } from "./mutations";
+import { deriveEdges } from "./edges";
 import { specToGraph } from "./specToGraph";
 import { SAMPLE_SPEC, buildTestRegistry, sampleSteps } from "./testUtils";
 
+import type { BlockRegistry } from "../types/registry";
 import type { WorkflowSpecification } from "../types/spec";
 import { stepsToList } from "../types/spec";
 
@@ -272,7 +276,122 @@ describe("disconnectEdge (edge removal -> unbinding)", () => {
   it("is a no-op for edges without recoverable references", () => {
     expect(disconnectEdge(SAMPLE_SPEC, { id: "???" })).toBe(SAMPLE_SPEC);
   });
+
+  it("clears every field bound on one visual connection", () => {
+    const spec: WorkflowSpecification = {
+      ...SAMPLE_SPEC,
+      steps: sampleSteps().map((step) =>
+        step.name === "label_visualization"
+          ? { ...step, image: "$steps.detection.image", predictions: "$steps.detection.predictions" }
+          : step,
+      ),
+    };
+    const next = disconnectConnection(spec, {
+      source: "$steps.detection",
+      target: "$steps.label_visualization",
+      data: {
+        sourceOutput: "image",
+        targetInput: "image",
+        bindings: [
+          { sourceOutput: "image", targetInput: "image" },
+          { sourceOutput: "predictions", targetInput: "predictions" },
+        ],
+      },
+    });
+    const label = stepsToList(next.steps).find((entry) => entry.name === "label_visualization");
+    expect(label?.step.image).toBeUndefined();
+    expect(label?.step.predictions).toBeUndefined();
+  });
 });
+
+describe("spliceBlock", () => {
+  it("inserts the block on the connection and retargets a matching output", () => {
+    const spec: WorkflowSpecification = {
+      ...SAMPLE_SPEC,
+      metadata: {
+        ui: {
+          nodes: {
+            $inputs: { x: 0, y: 0 },
+            "$steps.detection": { x: 0, y: 200 },
+            "$steps.label_visualization": { x: 0, y: 400 },
+            $outputs: { x: 0, y: 600 },
+          },
+        },
+      },
+    };
+    const next = spliceBlock(
+      spec,
+      "roboflow_core/roboflow_classifier@v1",
+      {
+        sourceId: "$steps.detection",
+        targetId: "$steps.label_visualization",
+        position: { x: 0, y: 300 },
+        shiftedPositions: {
+          $inputs: { x: 0, y: 0 },
+          "$steps.detection": { x: 0, y: 200 },
+          "$steps.label_visualization": { x: 0, y: 520 },
+          $outputs: { x: 0, y: 720 },
+        },
+      },
+      registry,
+    );
+    const label = stepsToList(next.steps).find((entry) => entry.name === "label_visualization");
+    const inserted = stepsToList(next.steps).find((entry) => entry.name === "classifier");
+    expect(inserted?.step.image).toBe("$steps.detection.predictions");
+    expect(label?.step.predictions).toBe("$steps.classifier.predictions");
+    expect(label?.step.image).toBe("$inputs.image");
+    expect(next.metadata?.ui?.nodes?.["$steps.classifier"]).toEqual({ x: 0, y: 300 });
+    expect(next.metadata?.ui?.nodes?.["$steps.label_visualization"]).toEqual({ x: 0, y: 520 });
+    expect(edgesBetween(next, "$steps.detection", "$steps.label_visualization")).toEqual([]);
+    expect(edgesBetween(next, "$steps.classifier", "$steps.label_visualization").length).toBeGreaterThan(0);
+  });
+
+  it("replaces the original connection when the new block's output names differ", () => {
+    const cropType = "roboflow_core/crop@v1";
+    const cropRegistry: BlockRegistry = {
+      ...registry,
+      blocks: [
+        ...registry.blocks,
+        {
+          manifest_type_identifier: cropType,
+          block_schema: {
+            type: "object",
+            properties: { image: { type: "string" } },
+            required: [],
+          },
+          outputs_manifest: [{ name: "crops", kind: [{ name: "image" }] }],
+        },
+      ],
+      kinds_connections: {
+        ...registry.kinds_connections,
+        image: [
+          ...(registry.kinds_connections.image ?? []),
+          { manifest_type_identifier: cropType, property_name: "image" },
+        ],
+      },
+    };
+    const next = spliceBlock(SAMPLE_SPEC, cropType, {
+      sourceId: "$steps.detection",
+      targetId: "$steps.label_visualization",
+      position: { x: 0, y: 300 },
+      shiftedPositions: {},
+    }, cropRegistry);
+    const inserted = stepsToList(next.steps).find((entry) => entry.name === "crop");
+    const label = stepsToList(next.steps).find((entry) => entry.name === "label_visualization");
+    expect(inserted?.step.image).toBe("$steps.detection.predictions");
+    expect(label?.step.predictions).toBe("$steps.crop.crops");
+    expect(label?.step.image).toBe("$inputs.image");
+    expect(edgesBetween(next, "$steps.detection", "$steps.label_visualization")).toEqual([]);
+    expect(edgesBetween(next, "$steps.detection", "$steps.crop").map((edge) => edge.targetInput)).toEqual(["image"]);
+    expect(edgesBetween(next, "$steps.crop", "$steps.label_visualization").map((edge) => edge.targetInput)).toEqual([
+      "predictions",
+    ]);
+  });
+});
+
+function edgesBetween(spec: WorkflowSpecification, source: string, target: string) {
+  return deriveEdges(spec).filter((edge) => edge.source === source && edge.target === target);
+}
 
 describe("immutability", () => {
   it("mutations never modify the input spec", () => {

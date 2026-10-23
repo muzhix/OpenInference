@@ -133,10 +133,35 @@ describe("blockSectionOf / sectionMetaOf", () => {
   it("maps cloud identifiers to their section and unknowns to the fallback", () => {
     expect(blockSectionOf("roboflow_core/contrast_enhancement@v1")).toBe("classical_cv");
     expect(blockSectionOf("roboflow_core/roboflow_object_detection@v2")).toBe("other");
-    expect(sectionMetaOf("classical_cv").color).toBe(CLOUD_BLOCKS["roboflow_core/contrast_enhancement@v1"] ? "#0D9488" : "");
+    expect(sectionMetaOf("classical_cv").color).toBe(CLOUD_BLOCKS["roboflow_core/contrast_enhancement@v1"] ? "#06B6D4" : "");
     expect(sectionMetaOf("other").label).toBe("Other");
     expect(sectionMetaOf("other").color).toBe("#6B7280");
     expect(sectionMetaOf("other").description).toBeTruthy();
     expect(sectionMetaOf("other").icon).toBeTruthy();
+  });
+
+  it("matches the official full-library category set and ordering", () => {
+    expect(CLOUD_SECTIONS.map((section) => section.label)).toEqual([
+      "Model",
+      "Visualization",
+      "Logic and Branching",
+      "Data Storage",
+      "Notification",
+      "Video",
+      "Transformation",
+      "Classical Computer Vision",
+      "Advanced",
+      "Industrial Integration",
+      "Custom",
+    ]);
+  });
+
+  it("files the Custom-category blocks and hides officially-hidden families", () => {
+    expect(blockSectionOf("roboflow_core/detection_event_log@v1")).toBe("custom");
+    expect(blockSectionOf("roboflow_core/overlap_analysis@v1")).toBe("custom");
+    // Official full library shows no card for these families (2026-10-23).
+    expect(CLOUD_BLOCKS["roboflow_core/vlm_as_detector@v1"]).toBeUndefined();
+    expect(CLOUD_BLOCKS["roboflow_core/vlm_as_classifier@v2"]).toBeUndefined();
+    expect(CLOUD_BLOCKS["roboflow_core/seg-preview@v1"]).toBeUndefined();
   });
 });

@@ -55,6 +55,28 @@ body {
   border-color: #6d28d9;
 }
 
+/* Connections are a gray dash that flows from the source handle toward the target. */
+.workflow-studio-canvas .react-flow__edge-path.wf-flow {
+  stroke-dasharray: 5 6;
+  animation: wf-edge-flow 0.85s linear infinite;
+}
+
+.workflow-studio-canvas .react-flow__connection-path {
+  stroke: #c4c7ce;
+  stroke-dasharray: 5 6;
+  animation: wf-edge-flow 0.85s linear infinite;
+}
+
+.workflow-studio-canvas .react-flow__edge.selected .react-flow__edge-path.wf-flow:not(.wf-flow-dangling) {
+  stroke: #c4c7ce;
+}
+
+@keyframes wf-edge-flow {
+  to {
+    stroke-dashoffset: -22;
+  }
+}
+
 /* Hide the default attribution close gap; keep attribution visible. */
 .workflow-studio-canvas .react-flow__attribution {
   background: transparent;

@@ -9,13 +9,16 @@ import {
 } from "@xyflow/react";
 import type { Connection, NodeChange, NodeTypes, OnBeforeDelete } from "@xyflow/react";
 
-import { connectNodes, disconnectEdge, sectionMetaOf, specToGraph } from "../../adapter";
+import { connectNodes, disconnectConnection, sectionMetaOf, specToGraph } from "../../adapter";
 import type { AppEdge, AppNode, WorkflowNodeData } from "../../adapter";
 import { useEditorStore } from "../../state/editorStore";
 import { useRegistryStore } from "../../state/registryStore";
 import { BlocksPalette } from "./BlocksPalette";
+import { FlowEdge } from "./FlowEdge";
+import { INSERT_PLACEHOLDER_ID, groupFlowEdges, inertFlowEdge } from "./flowEdges";
 import { UiIcon } from "./hollowIcons";
 import { CanvasToolbar } from "./CanvasToolbar";
+import { InsertPlaceholderNode } from "./nodes/InsertPlaceholderNode";
 import { StickyNoteNode } from "./nodes/StickyNoteNode";
 import { WorkflowInputNode } from "./nodes/WorkflowInputNode";
 import { WorkflowOutputNode } from "./nodes/WorkflowOutputNode";
@@ -26,7 +29,10 @@ const nodeTypes = {
   workflowStep: WorkflowStepNode,
   workflowOutput: WorkflowOutputNode,
   stickyNote: StickyNoteNode,
+  insertPlaceholder: InsertPlaceholderNode,
 } satisfies NodeTypes;
+
+const edgeTypes = { flow: FlowEdge };
 
 function focusIsInFormControl(): boolean {
   const element = document.activeElement;
@@ -53,6 +59,7 @@ function CanvasInner() {
   const registry = useRegistryStore((state) => state.registry);
   const livePositions = useEditorStore((state) => state.livePositions);
   const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
+  const insertSlot = useEditorStore((state) => state.insertSlot);
   const openNodeId = useEditorStore((state) => state.expandedNodeId);
   const minimapVisible = useEditorStore((state) => state.minimapVisible);
   const locked = useEditorStore((state) => state.canvasLocked);
@@ -61,26 +68,43 @@ function CanvasInner() {
     () => (spec ? specToGraph(spec, registry) : { nodes: [] as AppNode[], edges: [] }),
     [spec, registry],
   );
-  const nodes = useMemo(
-    () =>
-      graph.nodes.map((node) => ({
-        ...node,
-        position: livePositions[node.id] ?? node.position,
-        selected: node.id === selectedNodeId,
-      })),
-    [graph, livePositions, selectedNodeId],
-  );
-  // Official edge styling: 1px gray with a closed arrowhead; edges touching
-  // the selected node highlight purple and thicken.
-  const edges = useMemo(
-    () =>
-      graph.edges.map((edge) =>
-        edge.source === selectedNodeId || edge.target === selectedNodeId
-          ? { ...edge, style: { ...(edge.style ?? {}), stroke: "#7C3AED", strokeWidth: 2 } }
-          : edge,
-      ),
-    [graph, selectedNodeId],
-  );
+  const nodes = useMemo(() => {
+    const placed = graph.nodes.map((node) => ({
+      ...node,
+      position: insertSlot?.shiftedPositions[node.id] ?? livePositions[node.id] ?? node.position,
+      selected: node.id === selectedNodeId,
+    }));
+    if (!insertSlot) {
+      return placed;
+    }
+    placed.push({
+      id: INSERT_PLACEHOLDER_ID,
+      type: "insertPlaceholder",
+      position: insertSlot.position,
+      draggable: false,
+      selectable: false,
+      connectable: false,
+      data: { kind: "insert" },
+      selected: false,
+    });
+    return placed;
+  }, [graph, livePositions, selectedNodeId, insertSlot]);
+  // One flowing dash per node pair. While a block is being inserted, that
+  // pair is drawn as two segments through the placeholder.
+  const edges = useMemo(() => {
+    const grouped = groupFlowEdges(graph.edges);
+    if (!insertSlot) {
+      return grouped;
+    }
+    const rest = grouped.filter(
+      (edge) => !(edge.source === insertSlot.sourceId && edge.target === insertSlot.targetId),
+    );
+    return [
+      ...rest,
+      inertFlowEdge(insertSlot.sourceId, INSERT_PLACEHOLDER_ID),
+      inertFlowEdge(INSERT_PLACEHOLDER_ID, insertSlot.targetId),
+    ];
+  }, [graph, insertSlot]);
 
   const onNodesChange = useCallback((changes: NodeChange<AppNode>[]) => {
     const store = useEditorStore.getState();
@@ -117,7 +141,7 @@ function CanvasInner() {
     if (edges.length === 0) {
       return;
     }
-    useEditorStore.getState().mutate((spec) => edges.reduce((acc, edge) => disconnectEdge(acc, edge), spec));
+    useEditorStore.getState().mutate((spec) => edges.reduce((acc, edge) => disconnectConnection(acc, edge), spec));
   }, []);
 
   const isValidConnection = useCallback((edge: AppEdge | Connection) => edge.source !== edge.target, []);
@@ -253,6 +277,7 @@ function CanvasInner() {
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         onNodesChange={onNodesChange}
         onNodeDrag={handleNodeDrag}
         onNodeDragStop={onNodeDragStop}
